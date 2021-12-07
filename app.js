@@ -66,6 +66,6 @@ let port = process.env.PORT;
      port = 3030;
  }
 
-app.listen(3030, function(req, res) {
+app.listen(port, function(req, res) {
   console.log("Server listening at port "+ port);
 });
