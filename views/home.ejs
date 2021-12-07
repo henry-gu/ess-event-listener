@@ -1,0 +1,16 @@
+<%- include('partials/header') %>
+    <div class="container pt-2">
+        <% events.forEach(event => { %>
+          <div class="row pt-1 bg-secondary bg-gradient bg-opacity-25">
+            <div class="col-9">
+              <h5><%= event.title %><h5>
+            </div>
+          </div>
+          <div class="row border bg-light border-light">
+            <div class="col-12">
+              <p><%= event.summary.slice(0,130) + "..." %> <a href="/event/<%= event.id%>">More</a></p>
+            </div>
+          </div>
+        <% }) %>
+    </div>
+<%- include('partials/footer') %>

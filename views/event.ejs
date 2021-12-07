@@ -1,0 +1,27 @@
+<%- include('partials/header') %>
+  <div class="container pt-3">
+    <div class="row">
+      <div class="col-12 text-white bg-secondary">
+        <h4>Event Payload</h4>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12 bg-secondary bg-gradient bg-opacity-25">
+        <h5><%= title %></h5>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12 bg-light">
+          <pre>
+          <code class="prettyprint">
+            <%= JSON.stringify(payload,null,1); %>
+          </code>
+          </pre>
+      </div>
+    </div>
+    <div class="row pt-3" >
+      <a href="/" class="col-2 btn btn-primary" role="button">Back</a>
+    </div>
+  </div>
+
+<%- include('partials/footer') %>
