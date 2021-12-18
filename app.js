@@ -39,14 +39,16 @@ app.set("view engine", "ejs");
 
 app.get("/", function (req, res) {
   // find all event
-  Event.find({}, function (err, events) {
-    if (!err) {
-      console.log(common.currentDateTime() + " --> HTTP GET: '/'");
-      res.render("home", {
-        events: events,
-      });
-    }
-  });
+  Event.find({})
+    .sort({ timeStamp: "desc" })
+    .exec(function (err, events) {
+      if (!err) {
+        console.log(common.currentDateTime() + " --> HTTP GET: '/'");
+        res.render("home", {
+          events: events,
+        });
+      }
+    });
 });
 
 app.get("/event/:eventId", function (req, res) {
@@ -88,7 +90,7 @@ app.post("/eventlistener", function (req, res) {
   const eventPayload = JSON.stringify(req.body, null, 4);
   const eventFacts = JSON.stringify(req.body.facts, null, 4);
 
-  const eventTimeStamp = req.body.timeStamp.slice(0, -1);
+  const eventTimeStamp = common.currentDateTime();
   const eventType = req.body.eventType;
   const eventTitle = `${eventTimeStamp};${eventTopic};${eventType};${eventId}`;
   console.log(common.currentDateTime() + " --> event received: [event id: " + eventId + "]");
