@@ -5,11 +5,28 @@ const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const app = express();
 const common = require(__dirname + "/common.js");
+const mongoose = require("mongoose");
+// const dbConnectUrl = "mongodb://localhost:27017/eventDB";
+const db_username = "admin-henrygu";
+const db_password = "KooGHB2021";
+const db_cluster = "cluster0.x4qhr";
+const db_name = "eventDB";
 
-const homeStartingContent = "Concur Event Notification List:";
-const aboutContent = "About Event Notification Listener.";
+mongoose.connect("mongodb+srv://admin-henry:KooGHB2021@cluster0.x4qhr.mongodb.net/eventDB");
+//mongoose.connect(`mongodb+srv://${db_username}:${db_password}@${db_cluster}.mongodb.net/${db_name}?retryWrites=true&w=majority`);
+// mongoose.connect(`mongodb+srv://${db_username}:${db_password}@${db_cluster}.mongodb.net/${db_name}?retryWrites=true&w=majority`, { useNewUrlParser: true });
 
-const events = [];
+const eventSchema = {
+  id: String,
+  title: String,
+  timeStamp: String,
+  type: String,
+  topic: String,
+  facts: String,
+  payload: String,
+};
+
+const Event = mongoose.model("Event", eventSchema);
 
 app.use(
   express.urlencoded({
@@ -21,47 +38,101 @@ app.use(express.static("public"));
 app.set("view engine", "ejs");
 
 app.get("/", function (req, res) {
-  console.log(common.currentDateTime() + " HTTP GET: '/'");
-  res.render("home", {
-    events: events,
+  // find all event
+  Event.find({}, function (err, events) {
+    if (!err) {
+      console.log(common.currentDateTime() + " --> HTTP GET: '/'");
+      res.render("home", {
+        events: events,
+      });
+    }
   });
 });
 
-app.get("/event/:id", function (req, res) {
-  const requestId = req.params.id.replace(/-/g, "");
-  console.log(common.currentDateTime() + " HTTP GET: '/eventlist/" + requestId + "'");
-  events.forEach((eventItem) => {
-    let currentId = eventItem.id;
-    if (currentId === requestId) {
+app.get("/event/:eventId", function (req, res) {
+  // const requestId = req.params.eventId.replace(/-/g, "");
+  const requestEventId = req.params.eventId;
+  console.log(common.currentDateTime() + " --> HTTP GET: '/events/" + requestEventId);
+
+  Event.findOne({ id: requestEventId }, function (err, event) {
+    if (!err) {
       res.render("event", {
-        title: eventItem.title,
-        payload: eventItem.payload,
+        title: event.title,
+        payload: event.payload,
       });
-      console.log("-- Display Event Payload: " + requestId);
+      console.log(common.currentDateTime() + " --> SUCEESS: event [" + event.id + " ] is found.");
+    } else {
+      console.log(common.currentDateTime() + " --> ERROR: event [" + event.id + " ] is NOT found.");
+    }
+  });
+});
+
+app.post("/eventdelete/:eventId", function (req, res) {
+  // const requestId = req.params.eventId.replace(/-/g, "");
+  const requestEventId = req.params.eventId;
+  console.log(common.currentDateTime() + " --> HTTP POST: '/eventdelete/" + requestEventId + "/delete");
+
+  Event.findOneAndDelete({ id: requestEventId }, function (err) {
+    if (!err) {
+      res.redirect("/");
+      console.log(common.currentDateTime() + " --> SUCEESS: event [" + requestEventId + " ] is deleted.");
+    } else {
+      console.log(common.currentDateTime() + " --> ERROR: delete event [" + requestEventId + " ] error.");
     }
   });
 });
 
 app.post("/eventlistener", function (req, res) {
-  const receiveDataTime = common.currentDateTime().slice(0, -4);
-  const eventId = req.body.id.replace(/-/g, "");
-  const eventTimeStamp = req.body.timeStamp.slice(0, -1);
-  const eventType = req.body.eventType;
+  const eventId = req.body.id;
   const eventTopic = req.body.topic;
   const eventPayload = JSON.stringify(req.body, null, 4);
   const eventFacts = JSON.stringify(req.body.facts, null, 4);
-  const eventTitle = `[${eventTimeStamp}]-[${eventTopic}]-[${eventType}] `;
-  console.log("Event Received at: " + receiveDataTime);
-  console.log("Event Payload:" + eventPayload);
-  const event = {
+
+  const eventTimeStamp = req.body.timeStamp.slice(0, -1);
+  const eventType = req.body.eventType;
+  const eventTitle = `${eventTimeStamp};${eventTopic};${eventType};${eventId}`;
+  console.log(common.currentDateTime() + " --> event received: [event id: " + eventId + "]");
+
+  const newEvent = new Event({
     id: eventId,
     title: eventTitle,
-    summary: eventFacts,
+    timeStamp: eventTimeStamp,
+    type: eventType,
+    topic: eventTopic,
+    facts: eventFacts,
     payload: eventPayload,
-  };
-  events.push(event);
-  res.send("Event Received.");
+  });
+
+  newEvent.save(function (err) {
+    if (!err) {
+      console.log(common.currentDateTime() + " --> event saved: [event id: " + eventId + "]");
+      res.send(eventFacts);
+    } else {
+      console.log(common.currentDateTime() + " --> event save error!");
+    }
+  });
 });
+
+// app.post("/eventlistener", function (req, res) {
+//   const receiveDataTime = common.currentDateTime().slice(0, -4);
+//   const eventId = req.body.id.replace(/-/g, "");
+//   const eventTimeStamp = req.body.timeStamp.slice(0, -1);
+//   const eventType = req.body.eventType;
+//   const eventTopic = req.body.topic;
+//   const eventPayload = JSON.stringify(req.body, null, 4);
+//   const eventFacts = JSON.stringify(req.body.facts, null, 4);
+//   const eventTitle = `[${eventTimeStamp}]-[${eventTopic}]-[${eventType}] `;
+//   console.log("Event Received at: " + receiveDataTime);
+//   console.log("Event Payload:" + eventPayload);
+//   const event = {
+//     id: eventId,
+//     title: eventTitle,
+//     facts: eventFacts,
+//     payload: eventPayload,
+//   };
+//   events.push(event);
+//   res.send("Event Received.");
+// });
 
 let port = process.env.PORT;
 if (port == null || port == "") {
