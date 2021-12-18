@@ -43,7 +43,7 @@ app.get("/", function (req, res) {
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
       if (!err) {
-        console.log(common.currentDateTime() + " --> HTTP GET: '/'");
+        console.log(common.ChinaDateTime() + " --> HTTP GET: '/'");
         res.render("home", {
           events: events,
         });
@@ -54,7 +54,7 @@ app.get("/", function (req, res) {
 app.get("/event/:eventId", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
   const requestEventId = req.params.eventId;
-  console.log(common.currentDateTime() + " --> HTTP GET: '/events/" + requestEventId);
+  console.log(common.ChinaDateTime() + " --> HTTP GET: '/events/" + requestEventId);
 
   Event.findOne({ id: requestEventId }, function (err, event) {
     if (!err) {
@@ -62,9 +62,9 @@ app.get("/event/:eventId", function (req, res) {
         title: event.title,
         payload: event.payload,
       });
-      console.log(common.currentDateTime() + " --> SUCEESS: event [" + event.id + " ] is found.");
+      console.log(common.ChinaDateTime() + " --> SUCEESS: event [" + event.id + " ] is found.");
     } else {
-      console.log(common.currentDateTime() + " --> ERROR: event [" + event.id + " ] is NOT found.");
+      console.log(common.ChinaDateTime() + " --> ERROR: event [" + event.id + " ] is NOT found.");
     }
   });
 });
@@ -72,14 +72,14 @@ app.get("/event/:eventId", function (req, res) {
 app.post("/eventdelete/:eventId", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
   const requestEventId = req.params.eventId;
-  console.log(common.currentDateTime() + " --> HTTP POST: '/eventdelete/" + requestEventId + "/delete");
+  console.log(common.ChinaDateTime() + " --> HTTP POST: '/eventdelete/" + requestEventId + "/delete");
 
   Event.findOneAndDelete({ id: requestEventId }, function (err) {
     if (!err) {
       res.redirect("/");
-      console.log(common.currentDateTime() + " --> SUCEESS: event [" + requestEventId + " ] is deleted.");
+      console.log(common.ChinaDateTime() + " --> SUCEESS: event [" + requestEventId + " ] is deleted.");
     } else {
-      console.log(common.currentDateTime() + " --> ERROR: delete event [" + requestEventId + " ] error.");
+      console.log(common.ChinaDateTime() + " --> ERROR: delete event [" + requestEventId + " ] error.");
     }
   });
 });
@@ -90,10 +90,10 @@ app.post("/eventlistener", function (req, res) {
   const eventPayload = JSON.stringify(req.body, null, 4);
   const eventFacts = JSON.stringify(req.body.facts, null, 4);
 
-  const eventTimeStamp = common.currentDateTime();
+  const eventTimeStamp = common.ChinaDateTime();
   const eventType = req.body.eventType;
   const eventTitle = `${eventTimeStamp};${eventTopic};${eventType};${eventId}`;
-  console.log(common.currentDateTime() + " --> event received: [event id: " + eventId + "]");
+  console.log(common.ChinaDateTime() + " --> event received: [event id: " + eventId + "]");
 
   const newEvent = new Event({
     id: eventId,
@@ -107,16 +107,16 @@ app.post("/eventlistener", function (req, res) {
 
   newEvent.save(function (err) {
     if (!err) {
-      console.log(common.currentDateTime() + " --> event saved: [event id: " + eventId + "]");
+      console.log(common.ChinaDateTime() + " --> event saved: [event id: " + eventId + "]");
       res.send(eventFacts);
     } else {
-      console.log(common.currentDateTime() + " --> event save error!");
+      console.log(common.ChinaDateTime() + " --> event save error!");
     }
   });
 });
 
 // app.post("/eventlistener", function (req, res) {
-//   const receiveDataTime = common.currentDateTime().slice(0, -4);
+//   const receiveDataTime = common.ChinaDateTime().slice(0, -4);
 //   const eventId = req.body.id.replace(/-/g, "");
 //   const eventTimeStamp = req.body.timeStamp.slice(0, -1);
 //   const eventType = req.body.eventType;
