@@ -1,21 +1,19 @@
 <%- include('partials/header') %>
-    <div class="container pt-2">
-        <% events.forEach(event => { %>
-          <div class="row pt-1 bg-secondary bg-gradient bg-opacity-25">
-            <div class="col-12">
-              <h5><%= event.title %><h5>
-            </div>
-          </div>
-          <div class="row pt-1 pb-1 border bg-light border-light">
-            <div class="col-11 align-middle">
-              <%= event.facts.slice(0,160) + "..." %> <a href="/event/<%= event.id%>"><button type="button" class="btn btn-link btn-sm align-middle">More</button></a>
-            </div>
-            <div class="col-1 align-middle">
-              <form class="mb-0" action="/eventdelete/<%= event.id%>" method="post">
-                <button type="submit" class="btn btn-outline-danger btn-sm ">Delete</button>
-              </form>
-            </div>
-          </div>
-        <% }) %>
+<div class="container pt-2">
+  <% events.forEach(event => { %>
+  <div class="row pt-1 bg-secondary bg-gradient bg-opacity-25">
+    <div class="col-12 fs-6 fw-bold"><%= event.title %></div>
+  </div>
+  <div class="row pt-1 pb-1 border bg-light border-light">
+    <div class="col-11 align-middle">
+      <%= event.facts.slice(0,140) + "..." %> </><a href="/event/<%= event.id%>"><button type="button" class="btn btn-outline-primary btn-sm align-middle">More</button></a>
     </div>
+    <div class="col-1 align-middle">
+      <form class="mb-0" action="/eventdelete/<%= event.id%>" method="post">
+        <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+      </form>
+    </div>
+  </div>
+  <% }) %>
+</div>
 <%- include('partials/footer') %>

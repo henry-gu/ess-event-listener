@@ -90,9 +90,9 @@ app.post("/eventlistener", function (req, res) {
   const eventPayload = JSON.stringify(req.body, null, 4);
   const eventFacts = JSON.stringify(req.body.facts, null, 4);
 
-  const eventTimeStamp = common.ChinaDateTime();
+  const eventTimeStamp = common.ChinaDateTime().slice(0, -4);
   const eventType = req.body.eventType;
-  const eventTitle = `${eventTimeStamp};${eventTopic};${eventType};${eventId}`;
+  const eventTitle = `[${eventTimeStamp}][${eventTopic}][${eventType}][${eventId}]`;
   console.log(common.ChinaDateTime() + " --> event received: [event id: " + eventId + "]");
 
   const newEvent = new Event({
