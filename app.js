@@ -12,9 +12,19 @@ const db_password = "KooGHB2021";
 const db_cluster = "cluster0.x4qhr";
 const db_name = "eventDB";
 
-mongoose.connect("mongodb+srv://admin-henry:KooGHB2021@cluster0.x4qhr.mongodb.net/eventDB");
-//mongoose.connect(`mongodb+srv://${db_username}:${db_password}@${db_cluster}.mongodb.net/${db_name}?retryWrites=true&w=majority`);
-// mongoose.connect(`mongodb+srv://${db_username}:${db_password}@${db_cluster}.mongodb.net/${db_name}?retryWrites=true&w=majority`, { useNewUrlParser: true });
+// const connectString = "mongodb+srv://admin-henry:KooGHB2021@cluster0.x4qhr.mongodb.net/eventDB";
+
+const connectString =
+  "mongodb://admin-henry:KooGHB2021@cluster0-shard-00-00.x4qhr.mongodb.net:27017,cluster0-shard-00-01.x4qhr.mongodb.net:27017,cluster0-shard-00-02.x4qhr.mongodb.net:27017/eventDB?ssl=true&replicaSet=atlas-10ngp0-shard-0&authSource=admin&retryWrites=true&w=majority";
+
+mongoose.connect(connectString);
+
+// const MongoClient = require("mongodb").MongoClient;
+// MongoClient.connect(uri, function (err, client) {
+//   const collection = client.db("test").collection("devices");
+//   // perform actions on the collection object
+//   client.close();
+// });
 
 const eventSchema = {
   id: String,
@@ -25,6 +35,9 @@ const eventSchema = {
   facts: String,
   payload: String,
 };
+// Create index
+// eventSchema.index({ title: "text", payload: "text" });
+// eventSchema.index({ '$xx': "text" });
 
 const Event = mongoose.model("Event", eventSchema);
 
@@ -84,6 +97,30 @@ app.post("/eventdelete/:eventId", function (req, res) {
   });
 });
 
+app.post("/eventsearch", function (req, res) {
+  const searchText = req.body.keyword;
+  const queryOptions = {
+    payload: {
+      $regex: searchText,
+      $options: "i",
+    },
+  };
+  console.log("--> SEARCH KEYWORD: " + searchText);
+  console.log("--> QUERY OPTION: " + JSON.stringify(queryOptions));
+
+  Event.find(queryOptions, function (err, events) {
+    if (!err) {
+      console.log("--> SUCCESS: Search Text [" + searchText + "], found " + events.length + " records.");
+      res.render("results", {
+        events: events,
+        keyword: searchText,
+      });
+    } else {
+      console.log("--> ERROR: Search Text [" + searchText + "]");
+    }
+  });
+});
+
 app.post("/eventlistener", function (req, res) {
   const eventId = req.body.id;
   const eventTopic = req.body.topic;
@@ -108,33 +145,12 @@ app.post("/eventlistener", function (req, res) {
   newEvent.save(function (err) {
     if (!err) {
       console.log(common.ChinaDateTime() + " --> event saved: [event id: " + eventId + "]");
-      res.send(eventFacts);
+      res.send(eventId);
     } else {
       console.log(common.ChinaDateTime() + " --> event save error!");
     }
   });
 });
-
-// app.post("/eventlistener", function (req, res) {
-//   const receiveDataTime = common.ChinaDateTime().slice(0, -4);
-//   const eventId = req.body.id.replace(/-/g, "");
-//   const eventTimeStamp = req.body.timeStamp.slice(0, -1);
-//   const eventType = req.body.eventType;
-//   const eventTopic = req.body.topic;
-//   const eventPayload = JSON.stringify(req.body, null, 4);
-//   const eventFacts = JSON.stringify(req.body.facts, null, 4);
-//   const eventTitle = `[${eventTimeStamp}]-[${eventTopic}]-[${eventType}] `;
-//   console.log("Event Received at: " + receiveDataTime);
-//   console.log("Event Payload:" + eventPayload);
-//   const event = {
-//     id: eventId,
-//     title: eventTitle,
-//     facts: eventFacts,
-//     payload: eventPayload,
-//   };
-//   events.push(event);
-//   res.send("Event Received.");
-// });
 
 let port = process.env.PORT;
 if (port == null || port == "") {

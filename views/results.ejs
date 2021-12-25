@@ -2,10 +2,10 @@
   <%- include('partials/head') %>
   <body>
     <%- include('partials/nav') %>
-    <div class="container mt-2 bg-secondary bg-gradient">
-      <h5 class="px-4 py-2 bg-secondary bg-gradient text-white fs-5"> Event List </h5>
+    <div class="container pt-2">
+      <h5>Search text <span class="text-primary fs-5">"<%- keyword%>"</span>, <%- events.length%> records found. </h5>
     </div>
-    <div class="container">
+    <div class="container pt-2">
       <% events.forEach(function(event){ %>
         <div class="row pt-1 bg-secondary bg-gradient bg-opacity-25">
           <div class="col-11 fs-6 fw-bold align-middle"><%= event.title %></div>
@@ -21,7 +21,11 @@
           </div>
       </div>
       <% }) %>
+      <div class="row pt-3">
+        <a href="/" class="col-1 btn btn-primary" role="button">Back</a>
+      </div>
     </div>
+
     <%- include('partials/footer') %>
   </body>
 </html>

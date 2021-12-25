@@ -1,16 +1,11 @@
-<nav class="navbar navbar-expand navbar-dark bg-dark">
-  <div class="container">
-    <a class="navbar-brand" href="/">Event Notifications</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav me-auto">
-      </ul>
-      <!-- <form class="d-flex">
-        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-        <button class="btn btn-outline-success" type="submit">Search</button>
-      </form> -->
-    </div>
+<nav class="navbar navbar-expand-md navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">ESS Event Listener</a>
+    <form class="form-inline" action="/eventsearch" method="post">
+      <div class="input-group input-group-sm">
+        <input type="text" class="form-control" placeholder="Search" name="keyword" required="required" aria-label="Search" />
+        <button class="btn btn-primary btn-sm" type="submit" id="submit">Search</button>
+      </div>
+    </form>
   </div>
 </nav>
