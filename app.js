@@ -105,20 +105,31 @@ app.post("/eventsearch", function (req, res) {
       $options: "i",
     },
   };
-  console.log("--> SEARCH KEYWORD: " + searchText);
-  console.log("--> QUERY OPTION: " + JSON.stringify(queryOptions));
+  Event.find(queryOptions)
+    .sort({ timeStamp: "desc" })
+    .exec(function (err, events) {
+      if (!err) {
+        console.log("--> SUCCESS: Search Text [" + searchText + "], found " + events.length + " records.");
+        res.render("results", {
+          events: events,
+          keyword: searchText,
+        });
+      } else {
+        console.log("--> ERROR: Search Text [" + searchText + "]");
+      }
+    });
 
-  Event.find(queryOptions, function (err, events) {
-    if (!err) {
-      console.log("--> SUCCESS: Search Text [" + searchText + "], found " + events.length + " records.");
-      res.render("results", {
-        events: events,
-        keyword: searchText,
-      });
-    } else {
-      console.log("--> ERROR: Search Text [" + searchText + "]");
-    }
-  });
+  // Event.find(queryOptions, function (err, events) {
+  //   if (!err) {
+  //     console.log("--> SUCCESS: Search Text [" + searchText + "], found " + events.length + " records.");
+  //     res.render("results", {
+  //       events: events,
+  //       keyword: searchText,
+  //     });
+  //   } else {
+  //     console.log("--> ERROR: Search Text [" + searchText + "]");
+  //   }
+  // });
 });
 
 app.post("/eventlistener", function (req, res) {
