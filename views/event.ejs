@@ -9,8 +9,11 @@
         </div>
       </div>
       <div class="row">
-        <div class="col-12 bg-secondary bg-gradient bg-opacity-25">
-          <h5><%= title %></h5>
+        <div class="col-12 bg-secondary bg-gradient bg-opacity-25 py-1">
+          <button type="button" class="btn btn-secondary btn-sm"><%= timeStamp %></button>
+          <button type="button" class="btn btn-primary btn-sm"><%= topic %></button>
+          <button type="button" class="btn btn-success btn-sm"><%= type %></button>
+          <button type="button" class="btn btn-warning btn-sm"><%= id %></button>
         </div>
       </div>
       <div class="row bg-secondary bg-gradient bg-opacity-10">
@@ -20,6 +23,5 @@
         <a href="/" class="col-1 btn btn-primary" role="button">Back</a>
       </div>
     </div>
-    <%- include('partials/footer') %>
   </body>
 </html>

@@ -3,25 +3,30 @@
   <body>
     <%- include('partials/nav') %>
     <div class="container mt-2 bg-secondary bg-gradient">
-      <h5 class="px-4 py-2 bg-secondary bg-gradient text-white fs-5"> Event List </h5>
+      <h5 class="px-4 py-2 bg-secondary bg-gradient text-white fs-5">Event List</h5>
     </div>
     <div class="container">
       <% events.forEach(function(event){ %>
-        <div class="row pt-1 bg-secondary bg-gradient bg-opacity-25">
-          <div class="col-11 fs-6 fw-bold align-middle"><%= event.title %></div>
-          <div class="col-1">
-            <form class="mb-1" action="/eventdelete/<%= event.id%>" method="post">
-              <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
-            </form>
-          </div>
+      <div class="row pt-1 bg-secondary bg-gradient bg-opacity-25">
+        <div class="col-11 fs-6 fw-bold align-middle">
+          <button type="button" class="btn btn-secondary btn-sm"><%= event.timeStamp %></button>
+          <button type="button" class="btn btn-primary btn-sm"><%= event.topic %></button>
+          <button type="button" class="btn btn-success btn-sm"><%= event.type %></button>
+          <button type="button" class="btn btn-warning btn-sm"><%= event.id %></button>
         </div>
-        <div class="row pt-1 pb-1 border bg-light border-light">
-          <div class="col-12 align-middle">
-            <%= event.facts.slice(0,160) + "..." %> </><a href="/event/<%= event.id%>"><button type="button" class="btn btn-outline-primary btn-sm align-right">More</button></a>
-          </div>
+        <div class="col-1">
+          <form class="mb-1" action="/eventdelete/<%= event.id%>" method="post">
+            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+          </form>
+        </div>
+      </div>
+      <div class="row pt-1 pb-1 border bg-light border-light">
+        <div class="col-12 align-left">
+          <span class="btn btn-light btn-sm"><%= event.facts.slice(0,180) + " ..." %></span>
+          <a href="/event/<%= event.id%>"><button type="button" class="btn btn-outline-primary btn-sm align-right">More</button></a>
+        </div>
       </div>
       <% }) %>
     </div>
-    <%- include('partials/footer') %>
   </body>
 </html>

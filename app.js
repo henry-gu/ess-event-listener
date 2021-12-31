@@ -28,16 +28,12 @@ mongoose.connect(connectString);
 
 const eventSchema = {
   id: String,
-  title: String,
   timeStamp: String,
   type: String,
   topic: String,
   facts: String,
   payload: String,
 };
-// Create index
-// eventSchema.index({ title: "text", payload: "text" });
-// eventSchema.index({ '$xx': "text" });
 
 const Event = mongoose.model("Event", eventSchema);
 
@@ -50,6 +46,47 @@ app.use(express.json());
 app.use(express.static("public"));
 app.set("view engine", "ejs");
 
+////////////////////////////////////////////////////
+let port = process.env.PORT;
+if (port == null || port == "") {
+  port = 3030;
+}
+
+app.listen(port, function (req, res) {
+  console.log("Server listening at port " + port);
+});
+
+///////////////////////////////////////////////////////
+app.post("/eventlistener", function (req, res) {
+  const eventId = req.body.id;
+  const eventTopic = req.body.topic;
+  const eventPayload = JSON.stringify(req.body, null, 4);
+  const eventFacts = JSON.stringify(req.body.facts, null, 4);
+
+  const eventTimeStamp = common.ChinaDateTime().slice(0, -4);
+  const eventType = req.body.eventType;
+  console.log(common.ChinaDateTime() + " --> event received: [event id: " + eventId + "]");
+
+  const newEvent = new Event({
+    id: eventId,
+    timeStamp: eventTimeStamp,
+    type: eventType,
+    topic: eventTopic,
+    facts: eventFacts,
+    payload: eventPayload,
+  });
+
+  newEvent.save(function (err) {
+    if (!err) {
+      console.log(common.ChinaDateTime() + " --> event saved: [event id: " + eventId + "]");
+      res.send(eventId);
+    } else {
+      console.log(common.ChinaDateTime() + " --> event save error!");
+    }
+  });
+});
+
+//////////////////////////////////////////////////////
 app.get("/", function (req, res) {
   // find all event
   Event.find({})
@@ -64,15 +101,20 @@ app.get("/", function (req, res) {
     });
 });
 
+///////////////////////////////////////////////////////
+
 app.get("/event/:eventId", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
   const requestEventId = req.params.eventId;
-  console.log(common.ChinaDateTime() + " --> HTTP GET: '/events/" + requestEventId);
+  console.log(common.ChinaDateTime() + " --> HTTP GET: '/event/" + requestEventId);
 
   Event.findOne({ id: requestEventId }, function (err, event) {
     if (!err) {
       res.render("event", {
-        title: event.title,
+        id: event.id,
+        timeStamp: event.timeStamp,
+        type: event.type,
+        topic: event.topic,
         payload: event.payload,
       });
       console.log(common.ChinaDateTime() + " --> SUCEESS: event [" + event.id + " ] is found.");
@@ -130,44 +172,4 @@ app.post("/eventsearch", function (req, res) {
   //     console.log("--> ERROR: Search Text [" + searchText + "]");
   //   }
   // });
-});
-
-app.post("/eventlistener", function (req, res) {
-  const eventId = req.body.id;
-  const eventTopic = req.body.topic;
-  const eventPayload = JSON.stringify(req.body, null, 4);
-  const eventFacts = JSON.stringify(req.body.facts, null, 4);
-
-  const eventTimeStamp = common.ChinaDateTime().slice(0, -4);
-  const eventType = req.body.eventType;
-  const eventTitle = `[${eventTimeStamp}][${eventTopic}][${eventType}][${eventId}]`;
-  console.log(common.ChinaDateTime() + " --> event received: [event id: " + eventId + "]");
-
-  const newEvent = new Event({
-    id: eventId,
-    title: eventTitle,
-    timeStamp: eventTimeStamp,
-    type: eventType,
-    topic: eventTopic,
-    facts: eventFacts,
-    payload: eventPayload,
-  });
-
-  newEvent.save(function (err) {
-    if (!err) {
-      console.log(common.ChinaDateTime() + " --> event saved: [event id: " + eventId + "]");
-      res.send(eventId);
-    } else {
-      console.log(common.ChinaDateTime() + " --> event save error!");
-    }
-  });
-});
-
-let port = process.env.PORT;
-if (port == null || port == "") {
-  port = 3030;
-}
-
-app.listen(port, function (req, res) {
-  console.log("Server listening at port " + port);
 });
