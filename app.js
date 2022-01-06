@@ -7,26 +7,13 @@ const ejs = require("ejs");
 const app = express();
 const common = require(__dirname + "/common.js");
 const mongoose = require("mongoose");
-// const dbConnectUrl = "mongodb://localhost:27017/eventDB";
-// const db_username = "admin-henrygu";
-// const db_password = "KooGHB2021";
-// const db_cluster = "cluster0.x4qhr";
-// const db_name = "eventDB";
-
-// const connectString = "mongodb+srv://admin-henry:KooGHB2021@cluster0.x4qhr.mongodb.net/eventDB";
 
 const connectString = process.env.DB_CONNECT_STRING;
+
 // const connectString =
 //   "mongodb://admin-henry:KooGHB2021@cluster0-shard-00-00.x4qhr.mongodb.net:27017,cluster0-shard-00-01.x4qhr.mongodb.net:27017,cluster0-shard-00-02.x4qhr.mongodb.net:27017/eventDB?ssl=true&replicaSet=atlas-10ngp0-shard-0&authSource=admin&retryWrites=true&w=majority";
 
 mongoose.connect(connectString);
-
-// const MongoClient = require("mongodb").MongoClient;
-// MongoClient.connect(uri, function (err, client) {
-//   const collection = client.db("test").collection("devices");
-//   // perform actions on the collection object
-//   client.close();
-// });
 
 const eventSchema = {
   id: String,
@@ -67,7 +54,7 @@ app.post("/eventlistener", function (req, res) {
 
   const eventTimeStamp = common.ChinaDateTime().slice(0, -4);
   const eventType = req.body.eventType;
-  console.log(common.ChinaDateTime() + " --> event received: [event id: " + eventId + "]");
+  console.log(common.ChinaDateTime() + " --> Event received: [event id: " + eventId + "]");
 
   const newEvent = new Event({
     id: eventId,
@@ -80,10 +67,10 @@ app.post("/eventlistener", function (req, res) {
 
   newEvent.save(function (err) {
     if (!err) {
-      console.log(common.ChinaDateTime() + " --> event saved: [event id: " + eventId + "]");
+      console.log(common.ChinaDateTime() + " --> Event payload saved: [event id: " + eventId + "]");
       res.send(eventId);
     } else {
-      console.log(common.ChinaDateTime() + " --> event save error!");
+      console.log(common.ChinaDateTime() + " --> Event payload save error!");
     }
   });
 });
@@ -91,6 +78,13 @@ app.post("/eventlistener", function (req, res) {
 //////////////////////////////////////////////////////
 app.get("/", function (req, res) {
   // find all event
+  console.log(common.ChinaDateTime() + " --> HTTP GET: '/'");
+  res.redirect("events/1");
+});
+
+//////////////////////////////////////////////////////
+app.get("/events", function (req, res) {
+  console.log(common.ChinaDateTime() + " --> HTTP GET: '/events'");
   Event.find({})
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
@@ -100,6 +94,29 @@ app.get("/", function (req, res) {
           events: events,
         });
       }
+    });
+});
+
+//////////////////////////////////////////////////////
+app.get("/events/:page", function (req, res) {
+  // find all event
+  const perPage = 10;
+  const page = req.params.page || 1;
+
+  console.log(common.ChinaDateTime() + " --> HTTP GET: '/events/:page'");
+  Event.find({})
+    .sort({ timeStamp: "desc" })
+    .skip(perPage * page - perPage)
+    .limit(perPage)
+    .exec(function (err, events) {
+      Event.count().exec(function (errCount, count) {
+        if (errCount) return next(errCount);
+        res.render("events", {
+          events: events,
+          current: page,
+          pages: Math.ceil(count / perPage),
+        });
+      });
     });
 });
 
@@ -126,6 +143,7 @@ app.get("/event/:eventId", function (req, res) {
   });
 });
 
+///////////////////////////////////////////////////////
 app.post("/eventdelete/:eventId", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
   const requestEventId = req.params.eventId;
@@ -141,7 +159,9 @@ app.post("/eventdelete/:eventId", function (req, res) {
   });
 });
 
+///////////////////////////////////////////////////////
 app.post("/eventsearch", function (req, res) {
+  console.log(common.ChinaDateTime() + " --> HTTP POST: '/eventsearch/");
   const searchText = req.body.keyword;
   const queryOptions = {
     payload: {
@@ -162,16 +182,4 @@ app.post("/eventsearch", function (req, res) {
         console.log("--> ERROR: Search Text [" + searchText + "]");
       }
     });
-
-  // Event.find(queryOptions, function (err, events) {
-  //   if (!err) {
-  //     console.log("--> SUCCESS: Search Text [" + searchText + "], found " + events.length + " records.");
-  //     res.render("results", {
-  //       events: events,
-  //       keyword: searchText,
-  //     });
-  //   } else {
-  //     console.log("--> ERROR: Search Text [" + searchText + "]");
-  //   }
-  // });
 });
