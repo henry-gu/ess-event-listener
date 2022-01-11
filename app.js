@@ -183,3 +183,28 @@ app.post("/eventsearch", function (req, res) {
       }
     });
 });
+
+///////////////////////////////////////////////////////
+app.post("/eventsearch/", function (req, res) {
+  console.log(common.ChinaDateTime() + " --> HTTP POST: '/eventsearch/");
+  const searchText = req.body.keyword;
+  const queryOptions = {
+    payload: {
+      $regex: searchText,
+      $options: "i",
+    },
+  };
+  Event.find(queryOptions)
+    .sort({ timeStamp: "desc" })
+    .exec(function (err, events) {
+      if (!err) {
+        console.log("--> SUCCESS: Search Text [" + searchText + "], found " + events.length + " records.");
+        res.render("results", {
+          events: events,
+          keyword: searchText,
+        });
+      } else {
+        console.log("--> ERROR: Search Text [" + searchText + "]");
+      }
+    });
+});

@@ -22,8 +22,7 @@
       </div>
       <div class="row pt-1 pb-1 border bg-light border-light">
         <div class="col-12 align-left">
-          <span class="btn btn-light btn-sm"><%= event.facts.slice(0,180) + " ..." %></span>
-          <a href="/event/<%= event.id%>"><button type="button" class="btn btn-outline-primary btn-sm align-right">More</button></a>
+          <a href="/event/<%= event.id%>" role="button" class="btn btn-light btn-sm"><%= event.facts.slice(0,180) + " ..." %></a>
         </div>
       </div>
       <% }) %>
