@@ -10,9 +10,6 @@ const mongoose = require("mongoose");
 
 const connectString = process.env.DB_CONNECT_STRING;
 
-// const connectString =
-//   "mongodb://admin-henry:KooGHB2021@cluster0-shard-00-00.x4qhr.mongodb.net:27017,cluster0-shard-00-01.x4qhr.mongodb.net:27017,cluster0-shard-00-02.x4qhr.mongodb.net:27017/eventDB?ssl=true&replicaSet=atlas-10ngp0-shard-0&authSource=admin&retryWrites=true&w=majority";
-
 mongoose.connect(connectString);
 
 const eventSchema = {
@@ -21,6 +18,7 @@ const eventSchema = {
   type: String,
   topic: String,
   facts: String,
+  geolocation: String,
   payload: String,
 };
 
@@ -51,17 +49,21 @@ app.post("/eventlistener", function (req, res) {
   const eventTopic = req.body.topic;
   const eventPayload = JSON.stringify(req.body, null, 4);
   const eventFacts = JSON.stringify(req.body.facts, null, 4);
-
   const eventTimeStamp = common.ChinaDateTime().slice(0, -4);
   const eventType = req.body.eventType;
-  console.log(common.ChinaDateTime() + " --> Event received: [event id: " + eventId + "]");
 
+  let eventFactsHref = req.body.facts.href;
+  let eventGeolocation = eventFactsHref ? eventFactsHref.substring(eventFactsHref.lastIndexOf("//") + 2, eventFactsHref.indexOf(".")).toUpperCase() : "";
+
+  console.log(common.ChinaDateTime() + " --> Event received: [event id: " + eventId + "]");
+  console.log(eventGeolocation);
   const newEvent = new Event({
     id: eventId,
     timeStamp: eventTimeStamp,
     type: eventType,
     topic: eventTopic,
     facts: eventFacts,
+    geolocation: eventGeolocation,
     payload: eventPayload,
   });
 
@@ -134,6 +136,7 @@ app.get("/event/:eventId", function (req, res) {
         timeStamp: event.timeStamp,
         type: event.type,
         topic: event.topic,
+        geolocation: event.geolocation,
         payload: event.payload,
       });
       console.log(common.ChinaDateTime() + " --> SUCEESS: event [" + event.id + " ] is found.");
