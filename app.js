@@ -165,7 +165,7 @@ app.post("/eventdelete/:eventId", function (req, res) {
 ///////////////////////////////////////////////////////
 app.post("/deleteallevents", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
-  console.log(common.ChinaDateTime() + " --> HTTP POST: '/deleteallevents/");
+  console.log(common.ChinaDateTime() + " --> HTTP GET: '/deleteallevents/");
 
   Event.deleteMany({}, function (err) {
     if (!err) {
