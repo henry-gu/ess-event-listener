@@ -163,6 +163,21 @@ app.post("/eventdelete/:eventId", function (req, res) {
 });
 
 ///////////////////////////////////////////////////////
+app.post("/deleteallevents", function (req, res) {
+  // const requestId = req.params.eventId.replace(/-/g, "");
+  console.log(common.ChinaDateTime() + " --> HTTP POST: '/deleteallevents/");
+
+  Event.deleteMany({}, function (err) {
+    if (!err) {
+      res.redirect("/");
+      console.log(common.ChinaDateTime() + " --> SUCEESS: all events are deleted.");
+    } else {
+      console.log(common.ChinaDateTime() + " --> ERROR: delete all events error.");
+    }
+  });
+});
+
+///////////////////////////////////////////////////////
 app.post("/eventsearch", function (req, res) {
   console.log(common.ChinaDateTime() + " --> HTTP POST: '/eventsearch/");
   const searchText = req.body.keyword;
