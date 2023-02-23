@@ -52,7 +52,28 @@ app.post("/eventlistener", function (req, res) {
   const eventTimeStamp = common.ChinaDateTime().slice(0, -4);
   const eventType = req.body.eventType;
 
-  let eventFactsHref = req.body.facts.href;
+  let eventFactsHref = "";
+  switch (eventTopic){
+    case 'public.concur.request':
+      eventFactsHref = req.body.facts.href; 
+      break;
+    case 'public.concur.expense.report':
+      eventFactsHref = req.body.facts.href; 
+      break;
+    case 'public.concur.travel.itinerary':
+      eventFactsHref = req.body.facts.hrefs.v4; 
+      break;
+    case 'public.concur.profile.identity':
+      eventFactsHref = req.body.facts.userHref;  
+      break;
+    case 'public.concur.user.provisioning':
+      eventFactsHref = req.body.facts.provisionStatusHref;  
+      break;
+    default:
+      eventFactsHref = req.body.facts.href; 
+  }
+
+ 
   let eventGeolocation = eventFactsHref ? eventFactsHref.substring(eventFactsHref.lastIndexOf("//") + 2, eventFactsHref.indexOf(".")).toUpperCase() : "";
 
   console.log(common.ChinaDateTime() + " --> Event received: [event id: " + eventId + "]");
