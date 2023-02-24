@@ -61,7 +61,7 @@ app.post("/eventlistener", function (req, res) {
       eventFactsHref = req.body.facts.href; 
       break;
     case 'public.concur.travel.itinerary':
-      eventFactsHref = req.body.facts.hrefs.v4; 
+      eventFactsHref = JSON.stringify(req.body.facts.hrefs, null, 4); 
       break;
     case 'public.concur.user.profile.identity':
       eventFactsHref = req.body.facts.userHref;  
