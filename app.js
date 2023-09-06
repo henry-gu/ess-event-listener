@@ -185,6 +185,10 @@ app.get("/events/:page", function (req, res) {
   console.log(common.ChinaDateTime() + " --> purge histroy records");
   deleteOldRecords();
 
+  // Added on Sept 6, 2023
+  // Retrieve the selected event topic from the query parameters
+  const selectedTopic = req.query.eventTopic || '';
+
   console.log(common.ChinaDateTime() + " --> HTTP GET: '/events/:page'");
   Event.find({})
     .sort({ timeStamp: "desc" })
@@ -196,13 +200,12 @@ app.get("/events/:page", function (req, res) {
         res.render("events", {
           events: events,
           current: page,
-          selectedTopic: selectedTopic,
+          selectedTopic: selectedTopic, // Pass the selectedTopic to the template
           pages: Math.ceil(count / perPage),
         });
       });
     });
 });
-
 ///////////////////////////////////////////////////////
 
 app.get("/event/:eventId", function (req, res) {
