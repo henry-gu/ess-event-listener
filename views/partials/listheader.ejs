@@ -1,8 +1,11 @@
 <div class="container mt-2 bg-secondary bg-gradient">
-    <h5 class="px-4 py-2 bg-secondary bg-gradient text-white fs-5 d-flex justify-content-between">Event List
+    <h5 class="px-4 py-2 bg-secondary bg-gradient text-white fs-5">Event List</h5>
+  </div>
+  <div class="container mt-3 bg-white text-right">
+    <h5 class="px-4 py-2 fs-5 d-flex justify-content-between">
+      <span>Filter by Event Topic:</span>
       <form action="/events" method="get" class="form-inline">
         <div class="form-group mb-2">
-          <label for="eventTopicSelect" class="mr-2">Filter by Event Topic:</label>
           <select class="form-control form-control-sm" id="eventTopicSelect" name="eventTopic">
             <option value="">All Topics</option>
             <option value="public.concur.request">public.concur.request</option>
@@ -16,3 +19,4 @@
       </form>
     </h5>
   </div>
+  
