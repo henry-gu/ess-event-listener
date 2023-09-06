@@ -5,23 +5,23 @@
 
 <!-- Filter Section -->
 <div class="container mt-3 bg-white">
-        <!-- Filter Form -->
-        <form action="/events" method="get" class="form-inline">
-            <!-- Dropdown Select -->
-            <div class="form-group mb-2">
-                <select class="form-control form-control-sm" id="eventTopicSelect" name="eventTopic">
-                    <option value="">All Topics</option>
-                    <option value="public.concur.request">public.concur.request</option>
-                    <option value="public.concur.expense.report">public.concur.expense.report</option>
-                    <option value="public.concur.travel.itinerary">public.concur.travel.itinerary</option>
-                    <option value="public.concur.user.profile.identity">public.concur.user.profile.identity</option>
-                    <option value="public.concur.user.provisioning">public.concur.user.provisioning</option>
-                </select>
-            </div>
+    <!-- Filter Form -->
+    <form action="/events" method="get" class="form-inline">
+        <!-- Dropdown Select -->
+        <div class="form-group mb-2">
+            <select class="form-control form-control-sm" id="eventTopicSelect" name="eventTopic" style="width: 25%;">
+                <option value="">All Topics</option>
+                <option value="public.concur.request">public.concur.request</option>
+                <option value="public.concur.expense.report">public.concur.expense.report</option>
+                <option value="public.concur.travel.itinerary">public.concur.travel.itinerary</option>
+                <option value="public.concur.user.profile.identity">public.concur.user.profile.identity</option>
+                <option value="public.concur.user.provisioning">public.concur.user.provisioning</option>
+            </select>
+        </div>
 
-            <!-- Filter Button -->
-            <div class="col-auto">
-                <button type="submit" class="btn btn-primary btn-sm mb-2">Filter</button>
-            </div>
-        </form>
+        <!-- Filter Button -->
+        <div class="form-group mb-2 ml-2">
+            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        </div>
+    </form>
 </div>
