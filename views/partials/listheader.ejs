@@ -8,8 +8,8 @@
     <!-- Filter Form -->
     <form action="/events" method="get" class="form-inline">
         <!-- Dropdown Select -->
-        <div class="form-group mb-2">
-            <select class="form-control form-control-sm" id="eventTopicSelect" name="eventTopic" style="width: 25%;">
+        <div class="form-group mb-2" style="width: 25%;">
+            <select class="form-control form-control-sm" id="eventTopicSelect" name="eventTopic">
                 <option value="">All Topics</option>
                 <option value="public.concur.request">public.concur.request</option>
                 <option value="public.concur.expense.report">public.concur.expense.report</option>
@@ -20,8 +20,6 @@
         </div>
 
         <!-- Filter Button -->
-        <div class="form-group mb-2 ml-2">
-            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-        </div>
+        <button type="submit" class="btn btn-primary btn-sm ml-2">Filter</button>
     </form>
 </div>
