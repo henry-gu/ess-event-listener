@@ -147,8 +147,6 @@ app.get("/", function (req, res) {
 
 //////////////////////////////////////////////////////
 app.get("/events", function (req, res) {
-  console.log(common.ChinaDateTime() + " --> HTTP GET: '/events'");
-
   // Added on Sept 6, 2023
   // Call the deleteOldRecords function before rendering the events page
   console.log(common.ChinaDateTime() + " --> purge histroy records");
@@ -162,11 +160,12 @@ app.get("/events", function (req, res) {
   // Define a filter object based on the selected topic
   const filter = selectedTopic ? { topic: selectedTopic } : {};
 
-  Event.find({})
+  console.log(common.ChinaDateTime() + " --> HTTP GET: '/events/eventTopic='"+selectedTopic);
+  Event.find(filter)
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
       if (!err) {
-        console.log(common.ChinaDateTime() + " --> HTTP GET: '/'");
+        console.log(common.ChinaDateTime() + "--> HTTP GET: '/events/eventTopic='"+selectedTopic);
         res.render("home", {
           events: events,
         });
