@@ -3,7 +3,7 @@
   </div>
   <div class="container mt-3 bg-white text-right">
     <h5 class="px-4 py-2 fs-5 d-flex justify-content-between">
-      <span>Filter by Event Topic:</span>
+      <span class="text-right">Filter by Event Topic:</span>
       <form action="/events" method="get" class="form-inline">
         <div class="form-group mb-2">
           <select class="form-control form-control-sm" id="eventTopicSelect" name="eventTopic">
@@ -15,7 +15,9 @@
             <option value="public.concur.user.provisioning">public.concur.user.provisioning</option>
           </select>
         </div>
-        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary btn-sm mb-2">Filter</button>
+          </div>
       </form>
     </h5>
   </div>
