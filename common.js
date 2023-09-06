@@ -19,3 +19,4 @@ exports.ChinaDateTime = function () {
   const localISOTime = new Date(Date.now() - tzoffset).toISOString().slice(0, -1); // remove last character
   return localISOTime;
 };
+

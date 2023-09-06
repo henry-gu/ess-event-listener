@@ -7,9 +7,10 @@ const ejs = require("ejs");
 const app = express();
 const common = require(__dirname + "/common.js");
 const mongoose = require("mongoose");
-const cron = require('node-cron');  // added on Sept 6, 2023
+const cron = require("node-cron"); // added on Sept 6, 2023
 
 const connectString = process.env.DB_CONNECT_STRING;
+const port = parseInt(process.env.PORT) || 3030;
 
 mongoose.connect(connectString);
 
@@ -25,12 +26,10 @@ const eventSchema = {
 
 const Event = mongoose.model("Event", eventSchema);
 
-
 ////////////////////////////////////////////////////
 // Added on Sept 6, 2023
 function deleteOldRecords() {
   const recordAge = parseInt(process.env.RECORD_AGE) || 7; // Get RECORD_AGE from environment variable, default to 7 days if not set
-
   const deleteDate = new Date();
   deleteDate.setDate(deleteDate.getDate() - recordAge); // Calculate the date based on the record age
 
@@ -44,13 +43,19 @@ function deleteOldRecords() {
 }
 
 // Schedule the deleteOldRecords function to run every day at midnight (00:00)
-cron.schedule('0 0 * * *', () => {
-  deleteOldRecords();
-}, {
-  timezone: 'Asia/Shanghai' // Set the timezone to match China's timezone
-});
+cron.schedule(
+  "0 0 * * *",
+  () => {
+    deleteOldRecords();
+  },
+  {
+    timezone: "Asia/Shanghai", // Set the timezone to match China's timezone
+  }
+);
 
 /////////////////////////////////////////////////////
+///  EJS
+
 app.use(
   express.urlencoded({
     extended: true,
@@ -60,14 +65,7 @@ app.use(express.json());
 app.use(express.static("public"));
 app.set("view engine", "ejs");
 
-
-
 ////////////////////////////////////////////////////
-let port = process.env.PORT;
-if (port == null || port == "") {
-  port = 3030;
-}
-
 app.listen(port, function (req, res) {
   console.log("Server listening at port " + port);
 });
@@ -82,30 +80,38 @@ app.post("/eventlistener", function (req, res) {
   const eventType = req.body.eventType;
 
   let eventFactsHref = "";
-  switch (eventTopic){
-    case 'public.concur.request':
-      eventFactsHref = req.body.facts.href; 
+  switch (eventTopic) {
+    case "public.concur.request":
+      eventFactsHref = req.body.facts.href;
       break;
-    case 'public.concur.expense.report':
-      eventFactsHref = req.body.facts.href; 
+    case "public.concur.expense.report":
+      eventFactsHref = req.body.facts.href;
       break;
-    case 'public.concur.travel.itinerary':
-      eventFactsHref = JSON.stringify(req.body.facts.hrefs, null, 4); 
+    case "public.concur.travel.itinerary":
+      eventFactsHref = JSON.stringify(req.body.facts.hrefs, null, 4);
       break;
-    case 'public.concur.user.profile.identity':
-      eventFactsHref = req.body.facts.userHref;  
+    case "public.concur.user.profile.identity":
+      eventFactsHref = req.body.facts.userHref;
       break;
-    case 'public.concur.user.provisioning':
-      eventFactsHref = req.body.facts.provisionStatusHref;  
+    case "public.concur.user.provisioning":
+      eventFactsHref = req.body.facts.provisionStatusHref;
       break;
     default:
-      eventFactsHref = req.body.facts.href; 
+      eventFactsHref = req.body.facts.href;
   }
 
- 
-  let eventGeolocation = eventFactsHref ? eventFactsHref.substring(eventFactsHref.lastIndexOf("//") + 2, eventFactsHref.indexOf(".")).toUpperCase() : "";
+  let eventGeolocation = eventFactsHref
+    ? eventFactsHref
+        .substring(
+          eventFactsHref.lastIndexOf("//") + 2,
+          eventFactsHref.indexOf(".")
+        )
+        .toUpperCase()
+    : "";
 
-  console.log(common.ChinaDateTime() + " --> Event received: [event id: " + eventId + "]");
+  console.log(
+    common.ChinaDateTime() + " --> Event received: [event id: " + eventId + "]"
+  );
   console.log(eventGeolocation);
   const newEvent = new Event({
     id: eventId,
@@ -119,7 +125,12 @@ app.post("/eventlistener", function (req, res) {
 
   newEvent.save(function (err) {
     if (!err) {
-      console.log(common.ChinaDateTime() + " --> Event payload saved: [event id: " + eventId + "]");
+      console.log(
+        common.ChinaDateTime() +
+          " --> Event payload saved: [event id: " +
+          eventId +
+          "]"
+      );
       res.send(eventId);
     } else {
       console.log(common.ChinaDateTime() + " --> Event payload save error!");
@@ -142,6 +153,14 @@ app.get("/events", function (req, res) {
   // Call the deleteOldRecords function before rendering the events page
   console.log(common.ChinaDateTime() + " --> purge histroy records");
   deleteOldRecords();
+
+  // Added on Sept 6, 2023
+  // Retrieve the selected event topic from the query parameters
+  const selectedTopic = req.query.eventTopic;
+
+  // Added on Sept 6, 2023
+  // Define a filter object based on the selected topic
+  const filter = selectedTopic ? { topic: selectedTopic } : {};
 
   Event.find({})
     .sort({ timeStamp: "desc" })
@@ -188,7 +207,9 @@ app.get("/events/:page", function (req, res) {
 app.get("/event/:eventId", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
   const requestEventId = req.params.eventId;
-  console.log(common.ChinaDateTime() + " --> HTTP GET: '/event/" + requestEventId);
+  console.log(
+    common.ChinaDateTime() + " --> HTTP GET: '/event/" + requestEventId
+  );
 
   Event.findOne({ id: requestEventId }, function (err, event) {
     if (!err) {
@@ -200,9 +221,19 @@ app.get("/event/:eventId", function (req, res) {
         geolocation: event.geolocation,
         payload: event.payload,
       });
-      console.log(common.ChinaDateTime() + " --> SUCEESS: event [" + event.id + " ] is found.");
+      console.log(
+        common.ChinaDateTime() +
+          " --> SUCEESS: event [" +
+          event.id +
+          " ] is found."
+      );
     } else {
-      console.log(common.ChinaDateTime() + " --> ERROR: event [" + event.id + " ] is NOT found.");
+      console.log(
+        common.ChinaDateTime() +
+          " --> ERROR: event [" +
+          event.id +
+          " ] is NOT found."
+      );
     }
   });
 });
@@ -211,14 +242,29 @@ app.get("/event/:eventId", function (req, res) {
 app.post("/eventdelete/:eventId", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
   const requestEventId = req.params.eventId;
-  console.log(common.ChinaDateTime() + " --> HTTP POST: '/eventdelete/" + requestEventId + "/delete");
+  console.log(
+    common.ChinaDateTime() +
+      " --> HTTP POST: '/eventdelete/" +
+      requestEventId +
+      "/delete"
+  );
 
   Event.findOneAndDelete({ id: requestEventId }, function (err) {
     if (!err) {
       res.redirect("/");
-      console.log(common.ChinaDateTime() + " --> SUCEESS: event [" + requestEventId + " ] is deleted.");
+      console.log(
+        common.ChinaDateTime() +
+          " --> SUCEESS: event [" +
+          requestEventId +
+          " ] is deleted."
+      );
     } else {
-      console.log(common.ChinaDateTime() + " --> ERROR: delete event [" + requestEventId + " ] error.");
+      console.log(
+        common.ChinaDateTime() +
+          " --> ERROR: delete event [" +
+          requestEventId +
+          " ] error."
+      );
     }
   });
 });
@@ -231,9 +277,13 @@ app.post("/deleteallevents", function (req, res) {
   Event.deleteMany({}, function (err) {
     if (!err) {
       res.redirect("/");
-      console.log(common.ChinaDateTime() + " --> SUCEESS: all events are deleted.");
+      console.log(
+        common.ChinaDateTime() + " --> SUCEESS: all events are deleted."
+      );
     } else {
-      console.log(common.ChinaDateTime() + " --> ERROR: delete all events error.");
+      console.log(
+        common.ChinaDateTime() + " --> ERROR: delete all events error."
+      );
     }
   });
 });
@@ -252,7 +302,13 @@ app.post("/eventsearch", function (req, res) {
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
       if (!err) {
-        console.log("--> SUCCESS: Search Text [" + searchText + "], found " + events.length + " records.");
+        console.log(
+          "--> SUCCESS: Search Text [" +
+            searchText +
+            "], found " +
+            events.length +
+            " records."
+        );
         res.render("results", {
           events: events,
           keyword: searchText,
@@ -277,7 +333,13 @@ app.post("/eventsearch/", function (req, res) {
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
       if (!err) {
-        console.log("--> SUCCESS: Search Text [" + searchText + "], found " + events.length + " records.");
+        console.log(
+          "--> SUCCESS: Search Text [" +
+            searchText +
+            "], found " +
+            events.length +
+            " records."
+        );
         res.render("results", {
           events: events,
           keyword: searchText,
