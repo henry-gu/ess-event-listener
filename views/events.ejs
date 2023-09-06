@@ -2,9 +2,10 @@
   <%- include('partials/head') %>
   <body>
     <%- include('partials/nav') %>
-    <div class="container mt-2 bg-secondary bg-gradient">
+    <%- include('partials/listheader') %>
+    <!-- <div class="container mt-2 bg-secondary bg-gradient">
       <h5 class="px-4 py-2 bg-secondary bg-gradient text-white fs-5">Event List</h5>
-    </div>
+    </div> -->
     <div class="container">
       <% events.forEach(function(event){ %>
       <div class="row pt-1 bg-secondary bg-gradient bg-opacity-25">
