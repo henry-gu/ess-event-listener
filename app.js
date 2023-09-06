@@ -7,6 +7,7 @@ const ejs = require("ejs");
 const app = express();
 const common = require(__dirname + "/common.js");
 const mongoose = require("mongoose");
+const cron = require('node-cron');  // added on Sept 6, 2023
 
 const connectString = process.env.DB_CONNECT_STRING;
 
@@ -24,6 +25,30 @@ const eventSchema = {
 
 const Event = mongoose.model("Event", eventSchema);
 
+const recordAge = 14;
+////////////////////////////////////////////////////
+// Added on Sept 6, 2023
+function deleteOldRecords() {
+  const purgeDate = new Date();
+  purgeDate.setDate(purgeDate.getDate() - recordAge); // Calculate the date 
+
+  Event.deleteMany({ timeStamp: { $lt: purgeDate.toISOString() } }, (err) => {
+    if (err) {
+      console.error("Error deleting old records:", err);
+    } else {
+      console.log(`History records older than ${recordAge} days deleted.`);
+    }
+  });
+}
+
+// Schedule the deleteOldRecords function to run every day at midnight (00:00)
+cron.schedule('0 0 * * *', () => {
+  deleteOldRecords();
+}, {
+  timezone: 'Asia/Shanghai' // Set the timezone to match China's timezone
+});
+
+/////////////////////////////////////////////////////
 app.use(
   express.urlencoded({
     extended: true,
@@ -32,6 +57,8 @@ app.use(
 app.use(express.json());
 app.use(express.static("public"));
 app.set("view engine", "ejs");
+
+
 
 ////////////////////////////////////////////////////
 let port = process.env.PORT;
@@ -108,6 +135,11 @@ app.get("/", function (req, res) {
 //////////////////////////////////////////////////////
 app.get("/events", function (req, res) {
   console.log(common.ChinaDateTime() + " --> HTTP GET: '/events'");
+
+  // Added on Sept 6, 2023
+  // Call the deleteOldRecords function before rendering the events page
+  deleteOldRecords();
+
   Event.find({})
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
