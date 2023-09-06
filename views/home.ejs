@@ -3,9 +3,6 @@
   <body>
     <%- include('partials/nav') %>
     <%- include('partials/listheader') %>
-    <!-- <div class="container mt-2 bg-secondary bg-gradient">
-      <h5 class="px-4 py-2 bg-secondary bg-gradient text-white fs-5">Event List</h5>
-    </div> -->
     <div class="container">
       <% events.forEach(function(event){ %>
       <div class="row pt-1 bg-secondary bg-gradient bg-opacity-25">
@@ -23,8 +20,7 @@
       </div>
       <div class="row pt-1 pb-1 border bg-light border-light">
         <div class="col-12 align-left">
-          <span class="btn btn-light btn-sm"><%= event.facts.slice(0,180) + " ..." %></span>
-          <a href="/event/<%= event.id%>"><button type="button" class="btn btn-outline-primary btn-sm align-right">More</button></a>
+          <a href="/event/<%= event.id%>" role="button" class="btn btn-light btn-sm"><%= "facts: "+ event.facts.slice(0,180) + " ..." %></a>
         </div>
       </div>
       <% }) %>
