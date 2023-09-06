@@ -1,10 +1,17 @@
+<!-- Event List Header -->
 <div class="container mt-2 bg-secondary bg-gradient">
     <h5 class="px-4 py-2 bg-secondary bg-gradient text-white fs-5">Event List</h5>
 </div>
+
+<!-- Filter Section -->
 <div class="container mt-3 bg-white">
-    <h5 class="px-4 py-2 fs-5 d-flex justify-content-between">
-        <span class="text-left">Filter by Event Topic:</span>
+    <h5 class="px-4 py-2 fs-5 d-flex justify-content-between align-items-center">
+        <!-- Filter Label -->
+        <span class="text-left small">Filter by Event Topic:</span>
+
+        <!-- Filter Form -->
         <form action="/events" method="get" class="form-inline">
+            <!-- Dropdown Select -->
             <div class="form-group mb-2">
                 <select class="form-control form-control-sm" id="eventTopicSelect" name="eventTopic">
                     <option value="">All Topics</option>
@@ -15,6 +22,8 @@
                     <option value="public.concur.user.provisioning">public.concur.user.provisioning</option>
                 </select>
             </div>
+
+            <!-- Filter Button -->
             <div class="col-auto">
                 <button type="submit" class="btn btn-primary btn-sm mb-2">Filter</button>
             </div>
