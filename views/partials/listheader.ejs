@@ -1,57 +1,48 @@
 <!-- Event List Header -->
 <div class="container mt-2 bg-secondary bg-gradient">
-  <h5 class="px-4 py-2 bg-secondary bg-gradient text-white fs-5">Event List</h5>
+    <h5 class="px-4 py-2 bg-secondary bg-gradient text-white fs-5">Event List</h5>
 </div>
 
-  <!-- Filter Section
-<div class="container mt-3 bg-white">
-  <form action="/events" method="get">
-    <div class="form-row align-items-center">
-      <div class="col-auto my-1">
-        <label class="mr-sm-2" for="eventTopicSelect"
-          >Filter by Event Topic:</label
-        >
-        <select
-          class="custom-select mr-sm-2"
-          id="eventTopicSelect"
-          name="eventTopic"
-        >
-          <option value="">All Topics</option>
-          <option value="public.concur.request">public.concur.request</option>
-          <option value="public.concur.expense.report">
-            public.concur.expense.report
-          </option>
-          <option value="public.concur.travel.itinerary">
-            public.concur.travel.itinerary
-          </option>
-          <option value="public.concur.user.profile.identity">
-            public.concur.user.profile.identity
-          </option>
-          <option value="public.concur.user.provisioning">
-            public.concur.user.provisioning
-          </option>
-        </select>
-      </div>
-      <div class="col-auto my-1">
-        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-      </div>
-    </div>
-  </form>
+<!-- <div class="container mt-3 mb-3 bg-white">
+    <form action="/events" method="get">
+        <div class="form-row align-items-center">
+                <label class="mr-sm-3" for="eventTopicSelect">Event Topic Selection:</label>
+                <select class="custom-select mr-sm-3" id="eventTopicSelect" name="eventTopic">
+                    <option value="">All Topics</option>
+                    <option value="public.concur.request">public.concur.request</option>
+                    <option value="public.concur.expense.report">
+                        public.concur.expense.report
+                    </option>
+                    <option value="public.concur.travel.itinerary">
+                        public.concur.travel.itinerary
+                    </option>
+                    <option value="public.concur.user.profile.identity">
+                        public.concur.user.profile.identity
+                    </option>
+                    <option value="public.concur.user.provisioning">
+                        public.concur.user.provisioning
+                    </option>
+                </select>
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Filter</button>
+            </div>
+
+        </div>
+    </form>
 </div> -->
 
+
   
-  <!-- Filter Section (Navbar-style) -->
   <nav class="navbar navbar-expand-lg navbar-light bg-white">
     <div class="container">
-      <form action="/events" method="get" class="form-inline mx-auto">
+      <form action="/events" method="get" class="form-inline">
         <div class="form-group mb-2">
           <select class="form-control form-control-sm" id="eventTopicSelect" name="eventTopic">
             <option value="">All Topics</option>
-            <option value="public.concur.request">public.concur.request</option>
-            <option value="public.concur.expense.report">public.concur.expense.report</option>
-            <option value="public.concur.travel.itinerary">public.concur.travel.itinerary</option>
-            <option value="public.concur.user.profile.identity">public.concur.user.profile.identity</option>
-            <option value="public.concur.user.provisioning">public.concur.user.provisioning</option>
+            <option value="public.concur.request" <% if (selectedTopic === 'public.concur.request') { %>selected<% } %>>public.concur.request</option>
+            <option value="public.concur.expense.report" <% if (selectedTopic === 'public.concur.expense.report') { %>selected<% } %>>public.concur.expense.report</option>
+            <option value="public.concur.travel.itinerary" <% if (selectedTopic === 'public.concur.travel.itinerary') { %>selected<% } %>>public.concur.travel.itinerary</option>
+            <option value="public.concur.user.profile.identity" <% if (selectedTopic === 'public.concur.user.profile.identity') { %>selected<% } %>>public.concur.user.profile.identity</option>
+            <option value="public.concur.user.provisioning" <% if (selectedTopic === 'public.concur.user.provisioning') { %>selected<% } %>>public.concur.user.provisioning</option>
           </select>
         </div>
         <div class="col-auto">

@@ -154,7 +154,7 @@ app.get("/events", function (req, res) {
 
   // Added on Sept 6, 2023
   // Retrieve the selected event topic from the query parameters
-  const selectedTopic = req.query.eventTopic;
+  const selectedTopic = req.query.eventTopic || '';
 
   // Added on Sept 6, 2023
   // Define a filter object based on the selected topic
@@ -167,6 +167,7 @@ app.get("/events", function (req, res) {
       if (!err) {
         console.log(common.ChinaDateTime() + "--> HTTP GET: '/events/eventTopic='"+selectedTopic);
         res.render("home", {
+          selectedTopic: selectedTopic,
           events: events,
         });
       }
@@ -195,6 +196,7 @@ app.get("/events/:page", function (req, res) {
         res.render("events", {
           events: events,
           current: page,
+          selectedTopic: selectedTopic,
           pages: Math.ceil(count / perPage),
         });
       });
