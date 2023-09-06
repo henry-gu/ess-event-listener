@@ -1,24 +1,23 @@
 <div class="container mt-2 bg-secondary bg-gradient">
     <h5 class="px-4 py-2 bg-secondary bg-gradient text-white fs-5">Event List</h5>
-  </div>
-  <div class="container mt-3 bg-white">
+</div>
+<div class="container mt-3 bg-white">
     <h5 class="px-4 py-2 fs-5 d-flex justify-content-between">
-      <span>Filter by Event Topic:</span>
-      <form action="/events" method="get" class="form-inline">
-        <div class="form-group mb-2">
-          <select class="form-control form-control-sm" id="eventTopicSelect" name="eventTopic">
-            <option value="">All Topics</option>
-            <option value="public.concur.request">public.concur.request</option>
-            <option value="public.concur.expense.report">public.concur.expense.report</option>
-            <option value="public.concur.travel.itinerary">public.concur.travel.itinerary</option>
-            <option value="public.concur.user.profile.identity">public.concur.user.profile.identity</option>
-            <option value="public.concur.user.provisioning">public.concur.user.provisioning</option>
-          </select>
-        </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-primary btn-sm mb-2">Filter</button>
-          </div>
-      </form>
+        <span class="text-left">Filter by Event Topic:</span>
+        <form action="/events" method="get" class="form-inline">
+            <div class="form-group mb-2">
+                <select class="form-control form-control-sm" id="eventTopicSelect" name="eventTopic">
+                    <option value="">All Topics</option>
+                    <option value="public.concur.request">public.concur.request</option>
+                    <option value="public.concur.expense.report">public.concur.expense.report</option>
+                    <option value="public.concur.travel.itinerary">public.concur.travel.itinerary</option>
+                    <option value="public.concur.user.profile.identity">public.concur.user.profile.identity</option>
+                    <option value="public.concur.user.provisioning">public.concur.user.provisioning</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm mb-2">Filter</button>
+            </div>
+        </form>
     </h5>
-  </div>
-  
+</div>
