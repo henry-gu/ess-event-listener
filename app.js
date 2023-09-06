@@ -25,18 +25,20 @@ const eventSchema = {
 
 const Event = mongoose.model("Event", eventSchema);
 
-const recordAge = 14;
+
 ////////////////////////////////////////////////////
 // Added on Sept 6, 2023
 function deleteOldRecords() {
-  const purgeDate = new Date();
-  purgeDate.setDate(purgeDate.getDate() - recordAge); // Calculate the date 
+  const recordAge = parseInt(process.env.RECORD_AGE) || 7; // Get RECORD_AGE from environment variable, default to 7 days if not set
 
-  Event.deleteMany({ timeStamp: { $lt: purgeDate.toISOString() } }, (err) => {
+  const deleteDate = new Date();
+  deleteDate.setDate(deleteDate.getDate() - recordAge); // Calculate the date based on the record age
+
+  Event.deleteMany({ timeStamp: { $lt: deleteDate.toISOString() } }, (err) => {
     if (err) {
       console.error("Error deleting old records:", err);
     } else {
-      console.log(`History records older than ${recordAge} days deleted.`);
+      console.log(`Old records older than ${recordAge} days deleted.`);
     }
   });
 }
@@ -138,6 +140,7 @@ app.get("/events", function (req, res) {
 
   // Added on Sept 6, 2023
   // Call the deleteOldRecords function before rendering the events page
+  console.log(common.ChinaDateTime() + " --> purge histroy records");
   deleteOldRecords();
 
   Event.find({})
@@ -157,6 +160,11 @@ app.get("/events/:page", function (req, res) {
   // find all event
   const perPage = 10;
   const page = req.params.page || 1;
+
+  // Added on Sept 6, 2023
+  // Call the deleteOldRecords function before rendering the events page
+  console.log(common.ChinaDateTime() + " --> purge histroy records");
+  deleteOldRecords();
 
   console.log(common.ChinaDateTime() + " --> HTTP GET: '/events/:page'");
   Event.find({})
