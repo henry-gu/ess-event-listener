@@ -115,7 +115,7 @@ app.post("/eventlistener", function (req, res) {
           eventFactsHref.indexOf(".")
         )
         .toUpperCase()
-    : "";
+    : "N/A";
 
   console.log(
     common.getUTCDateTime() + " --> Event received: [event id: " + eventId + "]"
