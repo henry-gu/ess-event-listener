@@ -98,7 +98,7 @@ app.post("/eventlistener", function (req, res) {
       break;
     case "public.concur.spend.accountingintegration":
       if (req.body.facts && req.body.facts.data) {
-          const factsData = JSON.parse(eq.body.facts.data);
+          const factsData = JSON.parse(req.body.facts.data);
         if (factsData && factsData.links && factsData.links.length > 0) {
           eventFactsHref = factsData.link[0].href;
           }
