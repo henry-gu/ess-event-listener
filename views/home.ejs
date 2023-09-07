@@ -20,7 +20,8 @@
       </div>
       <div class="row pt-1 pb-1 border bg-light border-light">
         <div class="col-12 align-left">
-          <a href="/event/<%= event.id%>" role="button" class="btn btn-light btn-sm"><%= "facts: "+ event.facts.slice(0,180) + " ..." %></a>
+          <% const sanitizedFacts = event.facts.replace(/\n/g, ' '); %>
+          <a href="/event/<%= event.id%>" role="button" class="btn btn-light btn-sm"><%= "facts: " + sanitizedFacts.slice(0, 160) + " ..." %></a>
         </div>
       </div>
       <% }) %>
