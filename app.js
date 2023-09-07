@@ -37,7 +37,7 @@ function deleteOldRecords() {
     if (err) {
       console.error("Error deleting old records:", err);
     } else {
-      console.log(`Old records older than ${recordAge} days deleted.`);
+      console.log(common.getUTCDateTime() + `--> Records older than ${recordAge} days are deleted.`);
     }
   });
 }
@@ -76,7 +76,7 @@ app.post("/eventlistener", function (req, res) {
   const eventTopic = req.body.topic;
   const eventPayload = JSON.stringify(req.body, null, 4);
   const eventFacts = JSON.stringify(req.body.facts, null, 4);
-  const eventTimeStamp = common.ChinaDateTime().slice(0, -4);
+  const eventTimeStamp = common.getUTCDateTime().slice(0, -4);
   const eventType = req.body.eventType;
 
   let eventFactsHref = "";
@@ -96,6 +96,14 @@ app.post("/eventlistener", function (req, res) {
     case "public.concur.user.provisioning":
       eventFactsHref = req.body.facts.provisionStatusHref;
       break;
+    case "public.concur.spend.accountingintegration":
+      if (req.body.facts && req.body.facts.data) {
+          const factsData = JSON.parse(eq.body.facts.data);
+        if (factsData && factsData.links && factsData.links.length > 0) {
+          eventFactsHref = factsData.link[0].href;
+          }
+        }
+        break;
     default:
       eventFactsHref = req.body.facts.href;
   }
@@ -110,7 +118,7 @@ app.post("/eventlistener", function (req, res) {
     : "";
 
   console.log(
-    common.ChinaDateTime() + " --> Event received: [event id: " + eventId + "]"
+    common.getUTCDateTime() + " --> Event received: [event id: " + eventId + "]"
   );
   console.log(eventGeolocation);
   const newEvent = new Event({
@@ -126,14 +134,14 @@ app.post("/eventlistener", function (req, res) {
   newEvent.save(function (err) {
     if (!err) {
       console.log(
-        common.ChinaDateTime() +
+        common.getUTCDateTime() +
           " --> Event payload saved: [event id: " +
           eventId +
           "]"
       );
       res.send(eventId);
     } else {
-      console.log(common.ChinaDateTime() + " --> Event payload save error!");
+      console.log(common.getUTCDateTime() + " --> Event payload save error!");
     }
   });
 });
@@ -141,7 +149,7 @@ app.post("/eventlistener", function (req, res) {
 //////////////////////////////////////////////////////
 app.get("/", function (req, res) {
   // find all event
-  console.log(common.ChinaDateTime() + " --> HTTP GET: '/'");
+  console.log(common.getUTCDateTime() + " --> HTTP GET: '/'");
   res.redirect("events/1");
 });
 
@@ -149,7 +157,6 @@ app.get("/", function (req, res) {
 app.get("/events", function (req, res) {
   // Added on Sept 6, 2023
   // Call the deleteOldRecords function before rendering the events page
-  console.log(common.ChinaDateTime() + " --> purge histroy records");
   deleteOldRecords();
 
   // Added on Sept 6, 2023
@@ -160,12 +167,12 @@ app.get("/events", function (req, res) {
   // Define a filter object based on the selected topic
   const filter = selectedTopic ? { topic: selectedTopic } : {};
 
-  console.log(common.ChinaDateTime() + " --> HTTP GET: '/events/eventTopic='"+selectedTopic);
+  console.log(common.getUTCDateTime() + " --> HTTP GET: '/events/eventTopic='"+selectedTopic);
   Event.find(filter)
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
       if (!err) {
-        console.log(common.ChinaDateTime() + "--> HTTP GET: '/events/eventTopic='"+selectedTopic);
+        console.log(common.getUTCDateTime() + "--> HTTP GET: '/events/eventTopic='"+selectedTopic);
         res.render("home", {
           selectedTopic: selectedTopic,
           events: events,
@@ -182,14 +189,13 @@ app.get("/events/:page", function (req, res) {
 
   // Added on Sept 6, 2023
   // Call the deleteOldRecords function before rendering the events page
-  console.log(common.ChinaDateTime() + " --> purge histroy records");
   deleteOldRecords();
 
   // Added on Sept 6, 2023
   // Retrieve the selected event topic from the query parameters
   const selectedTopic = req.query.eventTopic || '';
 
-  console.log(common.ChinaDateTime() + " --> HTTP GET: '/events/:page'");
+  console.log(common.getUTCDateTime() + " --> HTTP GET: '/events/:page'");
   Event.find({})
     .sort({ timeStamp: "desc" })
     .skip(perPage * page - perPage)
@@ -212,7 +218,7 @@ app.get("/event/:eventId", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
   const requestEventId = req.params.eventId;
   console.log(
-    common.ChinaDateTime() + " --> HTTP GET: '/event/" + requestEventId
+    common.getUTCDateTime() + " --> HTTP GET: '/event/" + requestEventId
   );
 
   Event.findOne({ id: requestEventId }, function (err, event) {
@@ -226,14 +232,14 @@ app.get("/event/:eventId", function (req, res) {
         payload: event.payload,
       });
       console.log(
-        common.ChinaDateTime() +
+        common.getUTCDateTime() +
           " --> SUCEESS: event [" +
           event.id +
           " ] is found."
       );
     } else {
       console.log(
-        common.ChinaDateTime() +
+        common.getUTCDateTime() +
           " --> ERROR: event [" +
           event.id +
           " ] is NOT found."
@@ -247,7 +253,7 @@ app.post("/eventdelete/:eventId", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
   const requestEventId = req.params.eventId;
   console.log(
-    common.ChinaDateTime() +
+    common.getUTCDateTime() +
       " --> HTTP POST: '/eventdelete/" +
       requestEventId +
       "/delete"
@@ -257,14 +263,14 @@ app.post("/eventdelete/:eventId", function (req, res) {
     if (!err) {
       res.redirect("/");
       console.log(
-        common.ChinaDateTime() +
+        common.getUTCDateTime() +
           " --> SUCEESS: event [" +
           requestEventId +
           " ] is deleted."
       );
     } else {
       console.log(
-        common.ChinaDateTime() +
+        common.getUTCDateTime() +
           " --> ERROR: delete event [" +
           requestEventId +
           " ] error."
@@ -276,17 +282,17 @@ app.post("/eventdelete/:eventId", function (req, res) {
 ///////////////////////////////////////////////////////
 app.post("/deleteallevents", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
-  console.log(common.ChinaDateTime() + " --> HTTP GET: '/deleteallevents/");
+  console.log(common.getUTCDateTime() + " --> HTTP GET: '/deleteallevents/");
 
   Event.deleteMany({}, function (err) {
     if (!err) {
       res.redirect("/");
       console.log(
-        common.ChinaDateTime() + " --> SUCEESS: all events are deleted."
+        common.getUTCDateTime() + " --> SUCEESS: all events are deleted."
       );
     } else {
       console.log(
-        common.ChinaDateTime() + " --> ERROR: delete all events error."
+        common.getUTCDateTime() + " --> ERROR: delete all events error."
       );
     }
   });
@@ -294,7 +300,7 @@ app.post("/deleteallevents", function (req, res) {
 
 ///////////////////////////////////////////////////////
 app.post("/eventsearch", function (req, res) {
-  console.log(common.ChinaDateTime() + " --> HTTP POST: '/eventsearch/");
+  console.log(common.getUTCDateTime() + " --> HTTP POST: '/eventsearch/");
   const searchText = req.body.keyword;
   const queryOptions = {
     payload: {
@@ -325,7 +331,7 @@ app.post("/eventsearch", function (req, res) {
 
 ///////////////////////////////////////////////////////
 app.post("/eventsearch/", function (req, res) {
-  console.log(common.ChinaDateTime() + " --> HTTP POST: '/eventsearch/");
+  console.log(common.getUTCDateTime() + " --> HTTP POST: '/eventsearch/");
   const searchText = req.body.keyword;
   const queryOptions = {
     payload: {
