@@ -42,11 +42,11 @@ function deleteOldRecords() {
       { timeStamp: { $lt: minimumDeleteDate.toISOString() } },
       (err) => {
         if (err) {
-          console.error(common.getUTCDateTime() + ' >>> FAILED TO DELETE OLD RECORDS. ERR:', err);
+          console.error(common.getUTCDateTime() + ' >>> ERROR: FAILED TO DELETE OLD RECORDS. ERR:', err);
         } else {
           console.log(
             common.getUTCDateTime() +
-            ` >>> RECORDS OLDER THAN ${recordAge} DAYS ARE DELETED.`
+            ` >>> SUCEESS: RECORDS OLDER THAN ${recordAge} DAYS ARE DELETED.`
           );
 
           // Update the lastDeleteDate in the common module
@@ -61,6 +61,7 @@ function deleteOldRecords() {
 cron.schedule(
   "0 0 * * *",
   () => {
+    console.log(common.getUTCDateTime() + " CRON JOB STARTS.")
     deleteOldRecords();
   },
   {
@@ -82,7 +83,7 @@ app.set("view engine", "ejs");
 
 ////////////////////////////////////////////////////
 app.listen(port, function (req, res) {
-  console.log("Server listening at port " + port);
+  console.log("SERVER IS LISTENING AT PORT " + port + "......");
 });
 
 ///////////////////////////////////////////////////////
@@ -133,8 +134,9 @@ app.post("/eventlistener", function (req, res) {
     : "N/A";
 
   console.log(
-    common.getUTCDateTime() + " >>> EVENT RECEIVED: event id[" + eventId + "]"
+    common.getUTCDateTime() + " >>> SUCEESS: EVENT RECEIVED. eventId:[" + eventId + "]"
   );
+
   console.log(eventGeolocation);
   const newEvent = new Event({
     id: eventId,
@@ -150,13 +152,13 @@ app.post("/eventlistener", function (req, res) {
     if (!err) {
       console.log(
         common.getUTCDateTime() +
-        " >>> EVENT PAYLOAD SAVED: event id[ " +
+        " >>> SUCEESS: EVENT PAYLOAD SAVED: eventId[ " +
         eventId +
         "]"
       );
       res.send(eventId);
     } else {
-      console.log(common.getUTCDateTime() + " >>> FAILED TO SAVE EVENT PAYLOAD. ERR:"+err);
+      console.log(common.getUTCDateTime() + " >>> ERROR: FAILED TO SAVE EVENT PAYLOAD. ERR:"+err);
     }
   });
 });
@@ -183,11 +185,12 @@ app.get("/events", function (req, res) {
   const filter = selectedTopic ? { topic: selectedTopic } : {};
 
   console.log(common.getUTCDateTime() + " >>> HTTP GET: '/events/eventTopic='" + selectedTopic);
+
   Event.find(filter)
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
       if (!err) {
-        console.log(common.getUTCDateTime() + " >>> HTTP GET: '/events/eventTopic='" + selectedTopic);
+        console.log(common.getUTCDateTime() + " >>> SUCEESS: GET EVENTS: '/events/eventTopic='" + selectedTopic);
         res.render("home", {
           selectedTopic: selectedTopic,
           events: events,
@@ -248,14 +251,14 @@ app.get("/event/:eventId", function (req, res) {
       });
       console.log(
         common.getUTCDateTime() +
-        " >>> RETRIEVE EVENT SUCEESS: EVENT [" +
+        " >>> SUCEESS: RETRIEVE EVENT: eventId [" +
         event.id +
         " ]."
       );
     } else {
       console.log(
         common.getUTCDateTime() +
-        " >>> RETRIEVE EVENT FAILED: EVENT [" +
+        " >>> ERROR: RETRIEVE EVENT: eventId [" +
         event.id +
         " ] IS NOT FOUND. ERR: "+ err
       );
@@ -270,8 +273,7 @@ app.post("/eventdelete/:eventId", function (req, res) {
   console.log(
     common.getUTCDateTime() +
     " >>> HTTP POST: '/eventdelete/" +
-    requestEventId +
-    "/delete"
+    requestEventId
   );
 
   Event.findOneAndDelete({ id: requestEventId }, function (err) {
@@ -279,14 +281,14 @@ app.post("/eventdelete/:eventId", function (req, res) {
       res.redirect("/");
       console.log(
         common.getUTCDateTime() +
-        " >>> DELETE EVENT SUCEESS: event id [" +
+        " >>> SUCEESS: DELETE EVENT: eventId [" +
         requestEventId +
         " ]"
       );
     } else {
       console.log(
         common.getUTCDateTime() +
-        " >>> DELETE ERROR: event id [" +
+        " >>> ERROR: DELETE EVENT: eventId [" +
         requestEventId +
         " ]. ERR:" + err
       );
@@ -297,7 +299,7 @@ app.post("/eventdelete/:eventId", function (req, res) {
 ///////////////////////////////////////////////////////
 app.post("/deleteallevents", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
-  console.log(common.getUTCDateTime() + " >>> HTTP GET: '/deleteallevents/");
+  console.log(common.getUTCDateTime() + " >>> HTTP POST: '/deleteallevents/");
 
   Event.deleteMany({}, function (err) {
     if (!err) {
