@@ -27,19 +27,34 @@ const eventSchema = {
 const Event = mongoose.model("Event", eventSchema);
 
 ////////////////////////////////////////////////////
-// Added on Sept 6, 2023
+
 function deleteOldRecords() {
   const recordAge = parseInt(process.env.RECORD_AGE) || 7; // Get RECORD_AGE from environment variable, default to 7 days if not set
-  const deleteDate = new Date();
-  deleteDate.setDate(deleteDate.getDate() - recordAge); // Calculate the date based on the record age
+  const lastDeleteDate = common.getLastDeleteDate() || new Date(0); // Get the last delete date from common module, default to the epoch if not set
 
-  Event.deleteMany({ timeStamp: { $lt: deleteDate.toISOString() } }, (err) => {
-    if (err) {
-      console.error("Error deleting old records:", err);
-    } else {
-      console.log(common.getUTCDateTime() + `--> Records older than ${recordAge} days are deleted.`);
-    }
-  });
+  const currentDate = new Date();
+  const minimumDeleteDate = new Date(currentDate);
+  minimumDeleteDate.setDate(minimumDeleteDate.getDate() - recordAge); // Calculate the minimum delete date based on the record age
+
+  if (currentDate - lastDeleteDate >= 24 * 60 * 60 * 1000) {
+    // Check if the current date is at least 24 hours after the last delete date
+    Event.deleteMany(
+      { timeStamp: { $lt: minimumDeleteDate.toISOString() } },
+      (err) => {
+        if (err) {
+          console.error(common.getUTCDateTime() + ' >>> FAILED TO DELETE OLD RECORDS. ERR:', err);
+        } else {
+          console.log(
+            common.getUTCDateTime() +
+            ` >>> RECORDS OLDER THAN ${recordAge} DAYS ARE DELETED.`
+          );
+
+          // Update the lastDeleteDate in the common module
+          common.setLastDeleteDate(currentDate);
+        }
+      }
+    );
+  }
 }
 
 // Schedule the deleteOldRecords function to run every day at midnight (00:00)
@@ -98,27 +113,27 @@ app.post("/eventlistener", function (req, res) {
       break;
     case "public.concur.spend.accountingintegration":
       if (req.body.facts && req.body.facts.data) {
-          const factsData = JSON.parse(req.body.facts.data);
+        const factsData = JSON.parse(req.body.facts.data);
         if (factsData && factsData.links && factsData.links.length > 0) {
           eventFactsHref = factsData.links[0].href;
-          }
         }
-        break;
+      }
+      break;
     default:
       eventFactsHref = req.body.facts.href;
   }
 
   let eventGeolocation = eventFactsHref
     ? eventFactsHref
-        .substring(
-          eventFactsHref.lastIndexOf("//") + 2,
-          eventFactsHref.indexOf(".")
-        )
-        .toUpperCase()
+      .substring(
+        eventFactsHref.lastIndexOf("//") + 2,
+        eventFactsHref.indexOf(".")
+      )
+      .toUpperCase()
     : "N/A";
 
   console.log(
-    common.getUTCDateTime() + " --> Event received: [event id: " + eventId + "]"
+    common.getUTCDateTime() + " >>> EVENT RECEIVED: event id[" + eventId + "]"
   );
   console.log(eventGeolocation);
   const newEvent = new Event({
@@ -135,13 +150,13 @@ app.post("/eventlistener", function (req, res) {
     if (!err) {
       console.log(
         common.getUTCDateTime() +
-          " --> Event payload saved: [event id: " +
-          eventId +
-          "]"
+        " >>> EVENT PAYLOAD SAVED: event id[ " +
+        eventId +
+        "]"
       );
       res.send(eventId);
     } else {
-      console.log(common.getUTCDateTime() + " --> Event payload save error!");
+      console.log(common.getUTCDateTime() + " >>> FAILED TO SAVE EVENT PAYLOAD. ERR:"+err);
     }
   });
 });
@@ -149,7 +164,7 @@ app.post("/eventlistener", function (req, res) {
 //////////////////////////////////////////////////////
 app.get("/", function (req, res) {
   // find all event
-  console.log(common.getUTCDateTime() + " --> HTTP GET: '/'");
+  console.log(common.getUTCDateTime() + " >>> HTTP GET: '/'");
   res.redirect("events/1");
 });
 
@@ -167,12 +182,12 @@ app.get("/events", function (req, res) {
   // Define a filter object based on the selected topic
   const filter = selectedTopic ? { topic: selectedTopic } : {};
 
-  console.log(common.getUTCDateTime() + " --> HTTP GET: '/events/eventTopic='"+selectedTopic);
+  console.log(common.getUTCDateTime() + " >>> HTTP GET: '/events/eventTopic='" + selectedTopic);
   Event.find(filter)
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
       if (!err) {
-        console.log(common.getUTCDateTime() + "--> HTTP GET: '/events/eventTopic='"+selectedTopic);
+        console.log(common.getUTCDateTime() + " >>> HTTP GET: '/events/eventTopic='" + selectedTopic);
         res.render("home", {
           selectedTopic: selectedTopic,
           events: events,
@@ -195,7 +210,7 @@ app.get("/events/:page", function (req, res) {
   // Retrieve the selected event topic from the query parameters
   const selectedTopic = req.query.eventTopic || '';
 
-  console.log(common.getUTCDateTime() + " --> HTTP GET: '/events/:page'");
+  console.log(common.getUTCDateTime() + " >>> HTTP GET: '/events/:page'");
   Event.find({})
     .sort({ timeStamp: "desc" })
     .skip(perPage * page - perPage)
@@ -218,7 +233,7 @@ app.get("/event/:eventId", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
   const requestEventId = req.params.eventId;
   console.log(
-    common.getUTCDateTime() + " --> HTTP GET: '/event/" + requestEventId
+    common.getUTCDateTime() + " >>> HTTP GET: '/event/" + requestEventId
   );
 
   Event.findOne({ id: requestEventId }, function (err, event) {
@@ -233,16 +248,16 @@ app.get("/event/:eventId", function (req, res) {
       });
       console.log(
         common.getUTCDateTime() +
-          " --> SUCEESS: event [" +
-          event.id +
-          " ] is found."
+        " >>> RETRIEVE EVENT SUCEESS: EVENT [" +
+        event.id +
+        " ]."
       );
     } else {
       console.log(
         common.getUTCDateTime() +
-          " --> ERROR: event [" +
-          event.id +
-          " ] is NOT found."
+        " >>> RETRIEVE EVENT FAILED: EVENT [" +
+        event.id +
+        " ] IS NOT FOUND. ERR: "+ err
       );
     }
   });
@@ -254,9 +269,9 @@ app.post("/eventdelete/:eventId", function (req, res) {
   const requestEventId = req.params.eventId;
   console.log(
     common.getUTCDateTime() +
-      " --> HTTP POST: '/eventdelete/" +
-      requestEventId +
-      "/delete"
+    " >>> HTTP POST: '/eventdelete/" +
+    requestEventId +
+    "/delete"
   );
 
   Event.findOneAndDelete({ id: requestEventId }, function (err) {
@@ -264,16 +279,16 @@ app.post("/eventdelete/:eventId", function (req, res) {
       res.redirect("/");
       console.log(
         common.getUTCDateTime() +
-          " --> SUCEESS: event [" +
-          requestEventId +
-          " ] is deleted."
+        " >>> DELETE EVENT SUCEESS: event id [" +
+        requestEventId +
+        " ]"
       );
     } else {
       console.log(
         common.getUTCDateTime() +
-          " --> ERROR: delete event [" +
-          requestEventId +
-          " ] error."
+        " >>> DELETE ERROR: event id [" +
+        requestEventId +
+        " ]. ERR:" + err
       );
     }
   });
@@ -282,17 +297,17 @@ app.post("/eventdelete/:eventId", function (req, res) {
 ///////////////////////////////////////////////////////
 app.post("/deleteallevents", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
-  console.log(common.getUTCDateTime() + " --> HTTP GET: '/deleteallevents/");
+  console.log(common.getUTCDateTime() + " >>> HTTP GET: '/deleteallevents/");
 
   Event.deleteMany({}, function (err) {
     if (!err) {
       res.redirect("/");
       console.log(
-        common.getUTCDateTime() + " --> SUCEESS: all events are deleted."
+        common.getUTCDateTime() + " >>> SUCEESS: DELETE ALL EVENTS SUCCESS."
       );
     } else {
       console.log(
-        common.getUTCDateTime() + " --> ERROR: delete all events error."
+        common.getUTCDateTime() + " >>> ERROR: DELETE ALL EVENTS FAILESD. ERR:" + err
       );
     }
   });
@@ -300,7 +315,7 @@ app.post("/deleteallevents", function (req, res) {
 
 ///////////////////////////////////////////////////////
 app.post("/eventsearch", function (req, res) {
-  console.log(common.getUTCDateTime() + " --> HTTP POST: '/eventsearch/");
+  console.log(common.getUTCDateTime() + " >>> HTTP POST: '/eventsearch/");
   const searchText = req.body.keyword;
   const queryOptions = {
     payload: {
@@ -312,26 +327,26 @@ app.post("/eventsearch", function (req, res) {
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
       if (!err) {
-        console.log(
-          "--> SUCCESS: Search Text [" +
-            searchText +
-            "], found " +
-            events.length +
-            " records."
+        console.log( common.getUTCDateTime() + 
+          " >>> SUCCESS: SEARCH TEXT [" +
+          searchText +
+          "], FOUND " +
+          events.length +
+          " RECORDS."
         );
         res.render("results", {
           events: events,
           keyword: searchText,
         });
       } else {
-        console.log("--> ERROR: Search Text [" + searchText + "]");
+        console.log(common.getUTCDateTime() + " >>> ERROR: SEARCH TEXT [" + searchText + "] FAILED. ERR:"+err);
       }
     });
 });
 
 ///////////////////////////////////////////////////////
 app.post("/eventsearch/", function (req, res) {
-  console.log(common.getUTCDateTime() + " --> HTTP POST: '/eventsearch/");
+  console.log(common.getUTCDateTime() + " >>> HTTP POST: '/eventsearch/");
   const searchText = req.body.keyword;
   const queryOptions = {
     payload: {
@@ -343,19 +358,19 @@ app.post("/eventsearch/", function (req, res) {
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
       if (!err) {
-        console.log(
-          "--> SUCCESS: Search Text [" +
-            searchText +
-            "], found " +
-            events.length +
-            " records."
+        console.log( common.getUTCDateTime() + 
+          " >>> SUCCESS: SEARCH TEXT [" +
+          searchText +
+          "], FOUND " +
+          events.length +
+          " RECORDS."
         );
         res.render("results", {
           events: events,
           keyword: searchText,
         });
       } else {
-        console.log("--> ERROR: Search Text [" + searchText + "]");
+        console.log(common.getUTCDateTime() + " >>> ERROR: SEARCH TEXT [" + searchText + "] FAILED. ERR: "+ err);
       }
     });
 });
