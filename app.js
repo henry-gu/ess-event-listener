@@ -101,7 +101,7 @@ app.post("/eventlistener", function (req, res) {
 
   const clientIpAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-  const cert = req.socket.getPeerCertificate();
+  const cert = req.connect.getPeerCertificate();
   if (cert.subject) {
     console.log(common.getUTCDateTime() + `>>> CLIENT SUBJECT: ${cert.subject.CN}`);
   }
