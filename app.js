@@ -101,11 +101,13 @@ app.post("/eventlistener", function (req, res) {
   let eventTimeStamp = common.getUTCDateTime().slice(0, -4);
   let eventType = req.body.eventType;
   let eventFactsHref = "";
-  let peerCommonName = "N/A";
-  let peerSerialNumber = "N/A";
+  let peerCommonName = "CN";
+  let peerSerialNumber = "SN";
 
-
+  console.log(req.secure);
   if (req.secure) {
+    console.log(common.getUTCDateTime() +
+    " >>> RECEIVED HTTPS REQUEST.");
     // Extract the peer's certificate
     const peerCertificate = req.socket.getPeerCertificate();
     // Extract Common Name (CN) and serial number
@@ -115,9 +117,10 @@ app.post("/eventlistener", function (req, res) {
     console.log(`Common Name: ${peerCommonName}`);
     console.log(`Serial Number: ${peerSerialNumber}`);
   } else {
-    console.log("Received an HTTP request.");
-    peerCommonName = req.headers['x-ssl-client-s-dn-cn'] || "N/A";
-    peerSerialNumber = req.headers['x-ssl-client-serial-number'] || "N/A";
+    console.log(common.getUTCDateTime() +
+    " >>> RECEIVED HTTP REQUEST.");
+    peerCommonName = req.headers['x-ssl-client-s-dn-cn'] || "n/a";
+    peerSerialNumber = req.headers['x-ssl-client-serial-number'] || "n/a";
   }
 
   // Handle different event topics as needed
