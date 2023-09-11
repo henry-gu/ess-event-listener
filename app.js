@@ -104,31 +104,30 @@ app.post("/eventlistener", function (req, res) {
   const clientIpAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   console.log(common.getUTCDateTime() + " >>> CLIENT IP ADDRESS: "+ clientIpAddress);
 
-  const peerCertificate = req.socket.getPeerCertificate();
+  // const peerCertificate = req.socket.getPeerCertificate();
 
+  // if (req.secure) {
+  //   // Extract the peer's certificate
+  //   // Extract Common Name (CN) and serial number
+  //   peerCommonName = peerCertificate.subject.CN || "N/A";
+  //   peerSerialNumber = peerCertificate.serialNumber || "N/A";
+  //   // Use commonName and serialNumber as needed
+  // } else {
+  //   console.log(common.getUTCDateTime() + " >>> RECEIVED HTTP REQUEST.");
+  //   // For HTTP requests, retrieve the client certificate information from custom headers
+  //   peerCommonName = req.headers['x-ssl-client-s-dn-cn'] || "n/a";
+  //   peerSerialNumber = req.headers['x-ssl-client-serial-number'] || "n/a";
+  // }
 
-  if (req.secure) {
-    // Extract the peer's certificate
-    // Extract Common Name (CN) and serial number
-    peerCommonName = peerCertificate.subject.CN || "N/A";
-    peerSerialNumber = peerCertificate.serialNumber || "N/A";
-    // Use commonName and serialNumber as needed
-  } else {
-    console.log(common.getUTCDateTime() + " >>> RECEIVED HTTP REQUEST.");
-    // For HTTP requests, retrieve the client certificate information from custom headers
-    peerCommonName = req.headers['x-ssl-client-s-dn-cn'] || "n/a";
-    peerSerialNumber = req.headers['x-ssl-client-serial-number'] || "n/a";
-  }
+  // console.log(common.getUTCDateTime() + ` >>> Common Name: ${peerCommonName}`);
+  // console.log(common.getUTCDateTime() + ` >>> Serial Number: ${peerSerialNumber}`);
 
-  console.log(common.getUTCDateTime() + ` >>> Common Name: ${peerCommonName}`);
-  console.log(common.getUTCDateTime() + ` >>> Serial Number: ${peerSerialNumber}`);
-
-  if (peerCertificate.subject) {
-    console.log(common.getUTCDateTime() + `>>> CLIENT SUBJECT: ${peerCertificate.subject.CN}`);
-  }
-  if (peerCertificate.issuer) {
-    console.log(common.getUTCDateTime() + `>>> CLIENT CERT ISSUED BY: ${peerCertificate.issuer.CN}`);
-  }
+  // if (peerCertificate.subject) {
+  //   console.log(common.getUTCDateTime() + `>>> CLIENT SUBJECT: ${peerCertificate.subject.CN}`);
+  // }
+  // if (peerCertificate.issuer) {
+  //   console.log(common.getUTCDateTime() + `>>> CLIENT CERT ISSUED BY: ${peerCertificate.issuer.CN}`);
+  // }
 
   // Handle different event topics as needed
   switch (eventTopic) {
