@@ -22,9 +22,7 @@ const eventSchema = {
   facts: String,
   geolocation: String,
   payload: String,
-  peerCommonName: String,
-  peerSerialNumber: String,
-
+  clientIpAddress: String,
 };
 const Event = mongoose.model("Event", eventSchema);
 
@@ -99,23 +97,10 @@ app.post("/eventlistener", function (req, res) {
   let eventType = req.body.eventType;
   let eventFactsHref = "";
 
-  let peerCommonName = "";
-  let peerSerialNumber = "";
-
-  console.log(common.getUTCDateTime() + " >>> RECEIVED EVENT NOTIFICATION. " );
-  if (req.secure) {
-    // Extract the peer's certificate
-    const peerCertificate = req.socket.getPeerCertificate();
-    if (peerCertificate && peerCertificate.subject && peerCertificate.serialNumber) {
-      // Extract Common Name (CN) and serial number
-      peerCommonName = peerCertificate.subject.CN || "N/A";
-      peerSerialNumber = peerCertificate.serialNumber || "N/A";
-    }
-  } else {
-    // HTTP request
-    peerCommonName = req.headers['x-ssl-client-s-dn-cn'] || "n/a";
-    peerSerialNumber = req.headers['x-ssl-client-serial-number'] || "n/a";
-  }
+  console.log(common.getUTCDateTime() + " >>> RECEIVED EVENT NOTIFICATION. ");
+  
+  const clientIpAddress = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  
   console.log(common.getUTCDateTime() + ` >>> CLIENT CERTIFICATE INFO: CN=${peerCommonName} , SN: ${peerSerialNumber}`);
 
   // Handle different event topics as needed
@@ -172,8 +157,7 @@ app.post("/eventlistener", function (req, res) {
     facts: eventFacts,
     geolocation: eventGeolocation,
     payload: eventPayload,
-    peerCommonName,
-    peerSerialNumber,
+    clientIpAddress,
   });
 
   newEvent.save(function (err) {
@@ -288,8 +272,8 @@ app.get("/event/:eventId", function (req, res) {
         topic: event.topic,
         geolocation: event.geolocation,
         payload: event.payload,
-        commonName: event.peerCommonName,
-        serialNumber: event.peerSerialNumber,
+        clientIpAddress: event.clientIpAddress,
+
       });
       console.log(
         common.getUTCDateTime() +
