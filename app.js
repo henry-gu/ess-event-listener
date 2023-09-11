@@ -22,6 +22,8 @@ const eventSchema = {
   facts: String,
   geolocation: String,
   payload: String,
+  peerCommonName: String,
+  peerSerialNumber: String,
 };
 
 const Event = mongoose.model("Event", eventSchema);
@@ -42,7 +44,11 @@ function deleteOldRecords() {
       { timeStamp: { $lt: minimumDeleteDate.toISOString() } },
       (err) => {
         if (err) {
-          console.error(common.getUTCDateTime() + ' >>> ERROR: FAILED TO DELETE OLD RECORDS. ERR:', err);
+          console.error(
+            common.getUTCDateTime() +
+            " >>> ERROR: FAILED TO DELETE OLD RECORDS. ERR:",
+            err
+          );
         } else {
           console.log(
             common.getUTCDateTime() +
@@ -61,7 +67,7 @@ function deleteOldRecords() {
 cron.schedule(
   "0 0 * * *",
   () => {
-    console.log(common.getUTCDateTime() + " CRON JOB STARTS.")
+    console.log(common.getUTCDateTime() + " CRON JOB STARTS.");
     deleteOldRecords();
   },
   {
@@ -88,14 +94,33 @@ app.listen(port, function (req, res) {
 
 ///////////////////////////////////////////////////////
 app.post("/eventlistener", function (req, res) {
-  const eventId = req.body.id;
-  const eventTopic = req.body.topic;
-  const eventPayload = JSON.stringify(req.body, null, 4);
-  const eventFacts = JSON.stringify(req.body.facts, null, 4);
-  const eventTimeStamp = common.getUTCDateTime().slice(0, -4);
-  const eventType = req.body.eventType;
-
+  let eventId = req.body.id;
+  let eventTopic = req.body.topic;
+  let eventPayload = JSON.stringify(req.body, null, 4);
+  let eventFacts = JSON.stringify(req.body.facts, null, 4);
+  let eventTimeStamp = common.getUTCDateTime().slice(0, -4);
+  let eventType = req.body.eventType;
   let eventFactsHref = "";
+  let peerCommonName = "N/A";
+  let peerSerialNumber = "N/A";
+
+
+  if (req.secure) {
+    // Extract the peer's certificate
+    const peerCertificate = req.socket.getPeerCertificate();
+    // Extract Common Name (CN) and serial number
+    peerCommonName = peerCertificate.subject.CN || "N/A";
+    peerSerialNumber = peerCertificate.serialNumber || "N/A";
+    // Use commonName and serialNumber as needed
+    console.log(`Common Name: ${peerCommonName}`);
+    console.log(`Serial Number: ${peerSerialNumber}`);
+  } else {
+    console.log("Received an HTTP request.");
+    peerCommonName = req.headers['x-ssl-client-s-dn-cn'] || "N/A";
+    peerSerialNumber = req.headers['x-ssl-client-serial-number'] || "N/A";
+  }
+
+  // Handle different event topics as needed
   switch (eventTopic) {
     case "public.concur.request":
       eventFactsHref = req.body.facts.href;
@@ -134,7 +159,10 @@ app.post("/eventlistener", function (req, res) {
     : "N/A";
 
   console.log(
-    common.getUTCDateTime() + " >>> SUCEESS: EVENT RECEIVED. eventId:[" + eventId + "]"
+    common.getUTCDateTime() +
+    " >>> SUCEESS: EVENT RECEIVED. eventId:[" +
+    eventId +
+    "]"
   );
 
   console.log(eventGeolocation);
@@ -146,6 +174,9 @@ app.post("/eventlistener", function (req, res) {
     facts: eventFacts,
     geolocation: eventGeolocation,
     payload: eventPayload,
+    // Save Common Name (CN) and serial number
+    peerCommonName,
+    peerSerialNumber,
   });
 
   newEvent.save(function (err) {
@@ -158,7 +189,11 @@ app.post("/eventlistener", function (req, res) {
       );
       res.send(eventId);
     } else {
-      console.log(common.getUTCDateTime() + " >>> ERROR: FAILED TO SAVE EVENT PAYLOAD. ERR:"+err);
+      console.log(
+        common.getUTCDateTime() +
+        " >>> ERROR: FAILED TO SAVE EVENT PAYLOAD. ERR:" +
+        err
+      );
     }
   });
 });
@@ -178,19 +213,27 @@ app.get("/events", function (req, res) {
 
   // Added on Sept 6, 2023
   // Retrieve the selected event topic from the query parameters
-  const selectedTopic = req.query.eventTopic || '';
+  const selectedTopic = req.query.eventTopic || "";
 
   // Added on Sept 6, 2023
   // Define a filter object based on the selected topic
   const filter = selectedTopic ? { topic: selectedTopic } : {};
 
-  console.log(common.getUTCDateTime() + " >>> HTTP GET: '/events/eventTopic='" + selectedTopic);
+  console.log(
+    common.getUTCDateTime() +
+    " >>> HTTP GET: '/events/eventTopic='" +
+    selectedTopic
+  );
 
   Event.find(filter)
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
       if (!err) {
-        console.log(common.getUTCDateTime() + " >>> SUCEESS: GET EVENTS: '/events/eventTopic='" + selectedTopic);
+        console.log(
+          common.getUTCDateTime() +
+          " >>> SUCEESS: GET EVENTS: '/events/eventTopic='" +
+          selectedTopic
+        );
         res.render("home", {
           selectedTopic: selectedTopic,
           events: events,
@@ -211,7 +254,7 @@ app.get("/events/:page", function (req, res) {
 
   // Added on Sept 6, 2023
   // Retrieve the selected event topic from the query parameters
-  const selectedTopic = req.query.eventTopic || '';
+  const selectedTopic = req.query.eventTopic || "";
 
   console.log(common.getUTCDateTime() + " >>> HTTP GET: '/events/:page'");
   Event.find({})
@@ -248,6 +291,8 @@ app.get("/event/:eventId", function (req, res) {
         topic: event.topic,
         geolocation: event.geolocation,
         payload: event.payload,
+        commonName: event.peerCommonName,
+        serialNumber: event.peerSerialNumber,
       });
       console.log(
         common.getUTCDateTime() +
@@ -260,7 +305,8 @@ app.get("/event/:eventId", function (req, res) {
         common.getUTCDateTime() +
         " >>> ERROR: RETRIEVE EVENT: eventId [" +
         event.id +
-        " ] IS NOT FOUND. ERR: "+ err
+        " ] IS NOT FOUND. ERR: " +
+        err
       );
     }
   });
@@ -271,9 +317,7 @@ app.post("/eventdelete/:eventId", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
   const requestEventId = req.params.eventId;
   console.log(
-    common.getUTCDateTime() +
-    " >>> HTTP POST: '/eventdelete/" +
-    requestEventId
+    common.getUTCDateTime() + " >>> HTTP POST: '/eventdelete/" + requestEventId
   );
 
   Event.findOneAndDelete({ id: requestEventId }, function (err) {
@@ -290,7 +334,8 @@ app.post("/eventdelete/:eventId", function (req, res) {
         common.getUTCDateTime() +
         " >>> ERROR: DELETE EVENT: eventId [" +
         requestEventId +
-        " ]. ERR:" + err
+        " ]. ERR:" +
+        err
       );
     }
   });
@@ -309,7 +354,9 @@ app.post("/deleteallevents", function (req, res) {
       );
     } else {
       console.log(
-        common.getUTCDateTime() + " >>> ERROR: DELETE ALL EVENTS FAILESD. ERR:" + err
+        common.getUTCDateTime() +
+        " >>> ERROR: DELETE ALL EVENTS FAILESD. ERR:" +
+        err
       );
     }
   });
@@ -329,7 +376,8 @@ app.post("/eventsearch", function (req, res) {
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
       if (!err) {
-        console.log( common.getUTCDateTime() + 
+        console.log(
+          common.getUTCDateTime() +
           " >>> SUCCESS: SEARCH TEXT [" +
           searchText +
           "], FOUND " +
@@ -341,7 +389,13 @@ app.post("/eventsearch", function (req, res) {
           keyword: searchText,
         });
       } else {
-        console.log(common.getUTCDateTime() + " >>> ERROR: SEARCH TEXT [" + searchText + "] FAILED. ERR:"+err);
+        console.log(
+          common.getUTCDateTime() +
+          " >>> ERROR: SEARCH TEXT [" +
+          searchText +
+          "] FAILED. ERR:" +
+          err
+        );
       }
     });
 });
@@ -360,7 +414,8 @@ app.post("/eventsearch/", function (req, res) {
     .sort({ timeStamp: "desc" })
     .exec(function (err, events) {
       if (!err) {
-        console.log( common.getUTCDateTime() + 
+        console.log(
+          common.getUTCDateTime() +
           " >>> SUCCESS: SEARCH TEXT [" +
           searchText +
           "], FOUND " +
@@ -372,7 +427,13 @@ app.post("/eventsearch/", function (req, res) {
           keyword: searchText,
         });
       } else {
-        console.log(common.getUTCDateTime() + " >>> ERROR: SEARCH TEXT [" + searchText + "] FAILED. ERR: "+ err);
+        console.log(
+          common.getUTCDateTime() +
+          " >>> ERROR: SEARCH TEXT [" +
+          searchText +
+          "] FAILED. ERR: " +
+          err
+        );
       }
     });
 });
