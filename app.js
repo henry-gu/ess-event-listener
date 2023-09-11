@@ -174,7 +174,6 @@ app.post("/eventlistener", function (req, res) {
     "]"
   );
 
-  console.log(eventGeolocation);
   const newEvent = new Event({
     id: eventId,
     timeStamp: eventTimeStamp,
@@ -194,13 +193,14 @@ app.post("/eventlistener", function (req, res) {
         eventId +
         "]"
       );
-      res.send(eventId);
+      res.status(200).send(eventId);
     } else {
       console.log(
         common.getUTCDateTime() +
         " >>> ERROR: FAILED TO SAVE EVENT PAYLOAD. ERR:" +
         err
       );
+      res.status(500).send("Failed to save event payload. Error:" + err);
     }
   });
 });
