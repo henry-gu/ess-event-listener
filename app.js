@@ -98,8 +98,16 @@ app.post("/eventlistener", function (req, res) {
   let eventFactsHref = "";
 
   console.log(common.getUTCDateTime() + " >>> RECEIVED EVENT NOTIFICATION. ");
-  
+
   const clientIpAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+  const cert = req.socket.getPeerCertificate();
+  if (cert.subject) {
+    console.log(common.getUTCDateTime() + `>>> CLIENT SUBJECT: ${cert.subject.CN}`);
+  }
+  if (cert.issuer) {
+    console.log(common.getUTCDateTime() + `>>> CLIENT CERT ISSUED BY: ${cert.issuer.CN}`);
+  }
 
   // Handle different event topics as needed
   switch (eventTopic) {
