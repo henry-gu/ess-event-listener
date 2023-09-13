@@ -1,45 +1,53 @@
 <html>
-  <%- include('partials/head') %>
+<%- include('partials/head') %>
+
   <body>
     <%- include('partials/nav') %>
-    <div class="container pt-3">
-      <div class="row">
-        <div class="col-12 text-white bg-secondary">
-          <h4>Event Payload</h4>
+      <div class="container pt-3">
+        <div class="row">
+          <div class="col-12 text-white bg-secondary">
+            <h4>Event Payload</h4>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-12 bg-secondary bg-gradient bg-opacity-25 py-1">
+            <button type="button" class="btn btn-secondary btn-sm">
+              <%= timeStamp %>
+            </button>
+            <button type="button" class="btn btn-primary btn-sm">
+              <%= topic %>
+            </button>
+            <button type="button" class="btn btn-success btn-sm">
+              <%= type %>
+            </button>
+            <button type="button" class="btn btn-warning btn-sm">
+              <%= id.slice(0, 40) %>
+            </button>
+          </div>
+        </div>
+        <div class="row bg-secondary bg-gradient bg-opacity-10">
+          <pre><code><%= payload %></code></pre>
+        </div>
+
+        <div class="container">
+          <div class="row mt-3 small">
+            <div class="col-2">Concur-CorrelationID:</div>
+            <div class="col-4">
+              <%= correlationId %>
+            </div>
+          </div>
+          <div class="row small">
+            <div class="col-2">Client IP Address:</div>
+            <div class="col-4">
+              <%= clientIpAddress %>
+            </div>
+          </div>
+        </div>
+        <div class="row pt-3">
+          <a href="/" class="col-1 btn btn-primary" role="button">Back</a>
         </div>
       </div>
-      <div class="row">
-        <div class="col-12 bg-secondary bg-gradient bg-opacity-25 py-1">
-          <button type="button" class="btn btn-secondary btn-sm"><%= timeStamp %></button>
-          <button type="button" class="btn btn-primary btn-sm"><%= topic %></button>
-          <button type="button" class="btn btn-success btn-sm"><%= type %></button>
-          <button type="button" class="btn btn-warning btn-sm"><%= id %></button>
-        </div>
       </div>
-      <div class="row bg-secondary bg-gradient bg-opacity-10">
-        <pre><code><%= payload %></code></pre>
-      </div>
-      <div class="row pt-3">
-        <div class="col-3">
-          <table class="table small">
-            <!-- <thead>
-            </thead> -->
-            <tbody>
-              <tr>
-                <td>Concur-CorrelationID: </td>
-                <td><%= correlationId %></td>
-              </tr>
-              <tr>
-                <td>Client IP Address: </td>
-                <td><%= clientIpAddress %></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div class="row pt-3">
-        <a href="/" class="col-1 btn btn-primary" role="button">Back</a>
-      </div>
-    </div>
   </body>
+
 </html>

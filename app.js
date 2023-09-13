@@ -94,7 +94,7 @@ app.post("/eventlistener", function (req, res) {
   let correlationId = req.body.correlationId || "";
   let eventPayload = JSON.stringify(req.body, null, 4);
   let eventFacts = JSON.stringify(req.body.facts, null, 4);
-  let eventTimeStamp = common.getUTCDateTime().slice(0, -4);
+  let eventTimeStamp = req.body.timeStamp.slice(0,23) || common.getUTCDateTime().slice(0, -4);
   let eventType = req.body.eventType || "";
   let eventFactsHref = "";
 
