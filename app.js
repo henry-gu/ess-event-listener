@@ -63,10 +63,10 @@ function deleteOldRecords() {
 }
 
 // Schedule the deleteOldRecords function to run every 2 days at 01:00AM
-cron.schedule( "0 0 1 */2 * *", () => {
-    console.log(common.getUTCDateTime() + " CRON JOB STARTS.");
-    deleteOldRecords();
-  },
+cron.schedule("0 0 1 */2 * *", () => {
+  console.log(common.getUTCDateTime() + " CRON JOB STARTS.");
+  deleteOldRecords();
+},
   {
     scheduled: true,
     timezone: "Asia/Shanghai", // Set the timezone to match China's timezone
@@ -89,20 +89,19 @@ app.listen(port, function (req, res) {
 
 ///////////////////////////////////////////////////////
 app.post("/eventlistener", function (req, res) {
-  let eventId = req.body.id;
-  let eventTopic = req.body.topic;
+  let eventId = req.body.id || "";
+  let eventTopic = req.body.topic || "";
+  let correlationId = req.body.correlationId || "";
   let eventPayload = JSON.stringify(req.body, null, 4);
   let eventFacts = JSON.stringify(req.body.facts, null, 4);
   let eventTimeStamp = common.getUTCDateTime().slice(0, -4);
-  let eventType = req.body.eventType;
+  let eventType = req.body.eventType || "";
   let eventFactsHref = "";
-  let peerCommonName = "";
-  let peerSerialNumber = "";
 
   console.log(common.getUTCDateTime() + " >>> RECEIVED EVENT NOTIFICATION. ");
 
   const clientIpAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-  console.log(common.getUTCDateTime() + " >>> CLIENT IP ADDRESS: "+ clientIpAddress);
+  console.log(common.getUTCDateTime() + " >>> CLIENT IP ADDRESS: " + clientIpAddress);
 
   // Handle different event topics as needed
   switch (eventTopic) {
@@ -157,6 +156,7 @@ app.post("/eventlistener", function (req, res) {
     facts: eventFacts,
     geolocation: eventGeolocation,
     payload: eventPayload,
+    correlationId,
     clientIpAddress,
   });
 
@@ -226,10 +226,6 @@ app.get("/events/:page", function (req, res) {
   const page = req.params.page || 1;
 
   // Added on Sept 6, 2023
-  // Call the deleteOldRecords function before rendering the events page
-  deleteOldRecords();
-
-  // Added on Sept 6, 2023
   // Retrieve the selected event topic from the query parameters
   const selectedTopic = req.query.eventTopic || "";
 
@@ -268,6 +264,7 @@ app.get("/event/:eventId", function (req, res) {
         topic: event.topic,
         geolocation: event.geolocation,
         payload: event.payload,
+        correlationId: event.correlationId,
         clientIpAddress: event.clientIpAddress,
 
       });
