@@ -63,10 +63,12 @@ function deleteOldRecords() {
 }
 
 // Schedule the deleteOldRecords function to run every 2 days at 01:00AM
-cron.schedule("0 0 1 */2 * *", () => {
-  console.log(common.getUTCDateTime() + " CRON JOB STARTS.");
-  deleteOldRecords();
-},
+cron.schedule(
+  "0 0 1 */2 * *",
+  () => {
+    console.log(common.getUTCDateTime() + " CRON JOB STARTS.");
+    deleteOldRecords();
+  },
   {
     scheduled: true,
     timezone: "Asia/Shanghai", // Set the timezone to match China's timezone
@@ -94,14 +96,23 @@ app.post("/eventlistener", function (req, res) {
   let correlationId = req.body.correlationId || "";
   let eventPayload = JSON.stringify(req.body, null, 4);
   let eventFacts = JSON.stringify(req.body.facts, null, 4);
-  let eventTimeStamp = req.body.timeStamp.slice(0,23) || common.getUTCDateTime().slice(0, -4);
   let eventType = req.body.eventType || "";
   let eventFactsHref = "";
 
+  let eventTimeStamp = "";
+  if (req.body.timeStamp) {
+    eventTimeStamp = req.body.timeStamp.slice(0, 23);
+  } else {
+    eventTimeStamp = common.getUTCDateTime().slice(0,23);
+  }
+
   console.log(common.getUTCDateTime() + " >>> RECEIVED EVENT NOTIFICATION. ");
 
-  const clientIpAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-  console.log(common.getUTCDateTime() + " >>> CLIENT IP ADDRESS: " + clientIpAddress);
+  const clientIpAddress =
+    req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  console.log(
+    common.getUTCDateTime() + " >>> CLIENT IP ADDRESS: " + clientIpAddress
+  );
 
   // Handle different event topics as needed
   switch (eventTopic) {
@@ -189,7 +200,6 @@ app.get("/", function (req, res) {
 
 //////////////////////////////////////////////////////
 app.get("/events", function (req, res) {
-
   // Retrieve the selected event topic from the query parameters
   const selectedTopic = req.query.eventTopic || "";
 
@@ -266,7 +276,6 @@ app.get("/event/:eventId", function (req, res) {
         payload: event.payload,
         correlationId: event.correlationId,
         clientIpAddress: event.clientIpAddress,
-
       });
       console.log(
         common.getUTCDateTime() +
