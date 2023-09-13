@@ -22,6 +22,7 @@ const eventSchema = {
   facts: String,
   geolocation: String,
   payload: String,
+  correlationId: String,
   clientIpAddress: String,
 };
 const Event = mongoose.model("Event", eventSchema);
@@ -61,14 +62,13 @@ function deleteOldRecords() {
   }
 }
 
-// Schedule the deleteOldRecords function to run every day at midnight (00:00)
-cron.schedule(
-  "0 0 * * *",
-  () => {
+// Schedule the deleteOldRecords function to run every 2 days at 01:00AM
+cron.schedule( "0 0 1 */2 * *", () => {
     console.log(common.getUTCDateTime() + " CRON JOB STARTS.");
     deleteOldRecords();
   },
   {
+    scheduled: true,
     timezone: "Asia/Shanghai", // Set the timezone to match China's timezone
   }
 );
@@ -103,31 +103,6 @@ app.post("/eventlistener", function (req, res) {
 
   const clientIpAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   console.log(common.getUTCDateTime() + " >>> CLIENT IP ADDRESS: "+ clientIpAddress);
-
-  // const peerCertificate = req.socket.getPeerCertificate();
-
-  // if (req.secure) {
-  //   // Extract the peer's certificate
-  //   // Extract Common Name (CN) and serial number
-  //   peerCommonName = peerCertificate.subject.CN || "N/A";
-  //   peerSerialNumber = peerCertificate.serialNumber || "N/A";
-  //   // Use commonName and serialNumber as needed
-  // } else {
-  //   console.log(common.getUTCDateTime() + " >>> RECEIVED HTTP REQUEST.");
-  //   // For HTTP requests, retrieve the client certificate information from custom headers
-  //   peerCommonName = req.headers['x-ssl-client-s-dn-cn'] || "n/a";
-  //   peerSerialNumber = req.headers['x-ssl-client-serial-number'] || "n/a";
-  // }
-
-  // console.log(common.getUTCDateTime() + ` >>> Common Name: ${peerCommonName}`);
-  // console.log(common.getUTCDateTime() + ` >>> Serial Number: ${peerSerialNumber}`);
-
-  // if (peerCertificate.subject) {
-  //   console.log(common.getUTCDateTime() + `>>> CLIENT SUBJECT: ${peerCertificate.subject.CN}`);
-  // }
-  // if (peerCertificate.issuer) {
-  //   console.log(common.getUTCDateTime() + `>>> CLIENT CERT ISSUED BY: ${peerCertificate.issuer.CN}`);
-  // }
 
   // Handle different event topics as needed
   switch (eventTopic) {
@@ -214,15 +189,10 @@ app.get("/", function (req, res) {
 
 //////////////////////////////////////////////////////
 app.get("/events", function (req, res) {
-  // Added on Sept 6, 2023
-  // Call the deleteOldRecords function before rendering the events page
-  deleteOldRecords();
 
-  // Added on Sept 6, 2023
   // Retrieve the selected event topic from the query parameters
   const selectedTopic = req.query.eventTopic || "";
 
-  // Added on Sept 6, 2023
   // Define a filter object based on the selected topic
   const filter = selectedTopic ? { topic: selectedTopic } : {};
 
