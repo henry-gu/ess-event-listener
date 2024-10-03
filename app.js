@@ -45,13 +45,13 @@ function deleteOldRecords() {
         if (err) {
           console.error(
             common.getUTCDateTime() +
-            " >>> ERROR: FAILED TO DELETE OLD RECORDS. ERR:",
+              " >>> ERROR: FAILED TO DELETE OLD RECORDS. ERR:",
             err
           );
         } else {
           console.log(
             common.getUTCDateTime() +
-            ` >>> SUCEESS: RECORDS OLDER THAN ${recordAge} DAYS ARE DELETED.`
+              ` >>> SUCCESS: RECORDS OLDER THAN ${recordAge} DAYS ARE DELETED.`
           );
 
           // Update the lastDeleteDate in the common module
@@ -103,7 +103,7 @@ app.post("/eventlistener", function (req, res) {
   if (req.body.timeStamp) {
     eventTimeStamp = req.body.timeStamp.slice(0, 23);
   } else {
-    eventTimeStamp = common.getUTCDateTime().slice(0,23);
+    eventTimeStamp = common.getUTCDateTime().slice(0, 23);
   }
 
   console.log(common.getUTCDateTime() + " >>> RECEIVED EVENT NOTIFICATION. ");
@@ -131,6 +131,12 @@ app.post("/eventlistener", function (req, res) {
     case "public.concur.user.provisioning":
       eventFactsHref = req.body.facts.provisionStatusHref;
       break;
+    case "public.concur.document.tax.compliance":
+      eventFactsHref = req.body.facts.href;
+      break;
+    case "public.concur.financialintegration":
+      eventFactsHref = req.body.facts.href;
+      break;
     case "public.concur.spend.accountingintegration":
       if (req.body.facts && req.body.facts.data) {
         const factsData = JSON.parse(req.body.facts.data);
@@ -145,18 +151,18 @@ app.post("/eventlistener", function (req, res) {
 
   let eventGeolocation = eventFactsHref
     ? eventFactsHref
-      .substring(
-        eventFactsHref.lastIndexOf("//") + 2,
-        eventFactsHref.indexOf(".")
-      )
-      .toUpperCase()
+        .substring(
+          eventFactsHref.lastIndexOf("//") + 2,
+          eventFactsHref.indexOf(".")
+        )
+        .toUpperCase()
     : "N/A";
 
   console.log(
     common.getUTCDateTime() +
-    " >>> SUCEESS: EVENT RECEIVED. eventId:[" +
-    eventId +
-    "]"
+      " >>> SUCCESS: EVENT RECEIVED. eventId:[" +
+      eventId +
+      "]"
   );
 
   const newEvent = new Event({
@@ -175,16 +181,16 @@ app.post("/eventlistener", function (req, res) {
     if (!err) {
       console.log(
         common.getUTCDateTime() +
-        " >>> SUCEESS: EVENT PAYLOAD SAVED: eventId[ " +
-        eventId +
-        "]"
+          " >>> SUCCESS: EVENT PAYLOAD SAVED: eventId[ " +
+          eventId +
+          "]"
       );
       res.status(200).send(eventId);
     } else {
       console.log(
         common.getUTCDateTime() +
-        " >>> ERROR: FAILED TO SAVE EVENT PAYLOAD. ERR:" +
-        err
+          " >>> ERROR: FAILED TO SAVE EVENT PAYLOAD. ERR:" +
+          err
       );
       res.status(500).send("Failed to save event payload. Error:" + err);
     }
@@ -208,8 +214,8 @@ app.get("/events", function (req, res) {
 
   console.log(
     common.getUTCDateTime() +
-    " >>> HTTP GET: '/events/eventTopic='" +
-    selectedTopic
+      " >>> HTTP GET: '/events/eventTopic='" +
+      selectedTopic
   );
 
   Event.find(filter)
@@ -218,8 +224,8 @@ app.get("/events", function (req, res) {
       if (!err) {
         console.log(
           common.getUTCDateTime() +
-          " >>> SUCEESS: GET EVENTS: '/events/eventTopic='" +
-          selectedTopic
+            " >>> SUCCESS: GET EVENTS: '/events/eventTopic='" +
+            selectedTopic
         );
         res.render("home", {
           selectedTopic: selectedTopic,
@@ -279,17 +285,17 @@ app.get("/event/:eventId", function (req, res) {
       });
       console.log(
         common.getUTCDateTime() +
-        " >>> SUCEESS: RETRIEVE EVENT: eventId [" +
-        event.id +
-        " ]."
+          " >>> SUCCESS: RETRIEVE EVENT: eventId [" +
+          event.id +
+          " ]."
       );
     } else {
       console.log(
         common.getUTCDateTime() +
-        " >>> ERROR: RETRIEVE EVENT: eventId [" +
-        event.id +
-        " ] IS NOT FOUND. ERR: " +
-        err
+          " >>> ERROR: RETRIEVE EVENT: eventId [" +
+          event.id +
+          " ] IS NOT FOUND. ERR: " +
+          err
       );
     }
   });
@@ -308,17 +314,17 @@ app.post("/eventdelete/:eventId", function (req, res) {
       res.redirect("/");
       console.log(
         common.getUTCDateTime() +
-        " >>> SUCEESS: DELETE EVENT: eventId [" +
-        requestEventId +
-        " ]"
+          " >>> SUCCESS: DELETE EVENT: eventId [" +
+          requestEventId +
+          " ]"
       );
     } else {
       console.log(
         common.getUTCDateTime() +
-        " >>> ERROR: DELETE EVENT: eventId [" +
-        requestEventId +
-        " ]. ERR:" +
-        err
+          " >>> ERROR: DELETE EVENT: eventId [" +
+          requestEventId +
+          " ]. ERR:" +
+          err
       );
     }
   });
@@ -333,13 +339,13 @@ app.post("/deleteallevents", function (req, res) {
     if (!err) {
       res.redirect("/");
       console.log(
-        common.getUTCDateTime() + " >>> SUCEESS: DELETE ALL EVENTS SUCCESS."
+        common.getUTCDateTime() + " >>> SUCCESS: DELETE ALL EVENTS SUCCESS."
       );
     } else {
       console.log(
         common.getUTCDateTime() +
-        " >>> ERROR: DELETE ALL EVENTS FAILESD. ERR:" +
-        err
+          " >>> ERROR: DELETE ALL EVENTS FAILESD. ERR:" +
+          err
       );
     }
   });
@@ -361,11 +367,11 @@ app.post("/eventsearch", function (req, res) {
       if (!err) {
         console.log(
           common.getUTCDateTime() +
-          " >>> SUCCESS: SEARCH TEXT [" +
-          searchText +
-          "], FOUND " +
-          events.length +
-          " RECORDS."
+            " >>> SUCCESS: SEARCH TEXT [" +
+            searchText +
+            "], FOUND " +
+            events.length +
+            " RECORDS."
         );
         res.render("results", {
           events: events,
@@ -374,10 +380,10 @@ app.post("/eventsearch", function (req, res) {
       } else {
         console.log(
           common.getUTCDateTime() +
-          " >>> ERROR: SEARCH TEXT [" +
-          searchText +
-          "] FAILED. ERR:" +
-          err
+            " >>> ERROR: SEARCH TEXT [" +
+            searchText +
+            "] FAILED. ERR:" +
+            err
         );
       }
     });
@@ -399,11 +405,11 @@ app.post("/eventsearch/", function (req, res) {
       if (!err) {
         console.log(
           common.getUTCDateTime() +
-          " >>> SUCCESS: SEARCH TEXT [" +
-          searchText +
-          "], FOUND " +
-          events.length +
-          " RECORDS."
+            " >>> SUCCESS: SEARCH TEXT [" +
+            searchText +
+            "], FOUND " +
+            events.length +
+            " RECORDS."
         );
         res.render("results", {
           events: events,
@@ -412,10 +418,10 @@ app.post("/eventsearch/", function (req, res) {
       } else {
         console.log(
           common.getUTCDateTime() +
-          " >>> ERROR: SEARCH TEXT [" +
-          searchText +
-          "] FAILED. ERR: " +
-          err
+            " >>> ERROR: SEARCH TEXT [" +
+            searchText +
+            "] FAILED. ERR: " +
+            err
         );
       }
     });
