@@ -404,7 +404,7 @@ app.post("/deleteallevents", async function (req, res) {
 app.post("/eventsearch", async function (req, res) {
   try {
     const searchText = req.body.keyword;
-    console.log(common.getUTCDateTime() + " >>> HTTP POST: '/eventsearch/");
+    console.log(common.getUTCDateTime() + " >>> HTTP POST: '/eventsearch/; keyword:"+searchText+"}");
 
     // Validate search text is a non-empty string
     if (typeof searchText !== 'string' || searchText.trim().length === 0) {
