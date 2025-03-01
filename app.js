@@ -90,111 +90,109 @@ app.listen(port, function (req, res) {
 });
 
 ///////////////////////////////////////////////////////
-app.post("/eventlistener", function (req, res) {
-  let eventId = req.body.id || "";
-  let eventTopic = req.body.topic || "";
-  let correlationId = req.body.correlationId || "";
-  let eventPayload = JSON.stringify(req.body, null, 4);
-  let eventFacts = JSON.stringify(req.body.facts, null, 4);
-  let eventType = req.body.eventType || "";
-  let eventFactsHref = "";
+app.post("/eventlistener", async function (req, res) {
+  try {
+    let eventId = req.body.id || "";
+    let eventTopic = req.body.topic || "";
+    let correlationId = req.body.correlationId || "";
+    let eventPayload = JSON.stringify(req.body, null, 4);
+    let eventFacts = JSON.stringify(req.body.facts, null, 4);
+    let eventType = req.body.eventType || "";
+    let eventFactsHref = "";
 
-  let eventTimeStamp = "";
-  if (req.body.timeStamp) {
-    eventTimeStamp = req.body.timeStamp.slice(0, 23);
-  } else {
-    eventTimeStamp = common.getUTCDateTime().slice(0, 23);
-  }
-
-  console.log(common.getUTCDateTime() + " >>> RECEIVED EVENT NOTIFICATION. ");
-
-  const clientIpAddress =
-    req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-  console.log(
-    common.getUTCDateTime() + " >>> CLIENT IP ADDRESS: " + clientIpAddress
-  );
-
-  // Handle different event topics as needed
-  switch (eventTopic) {
-    case "public.concur.request":
-      eventFactsHref = req.body.facts.href;
-      break;
-    case "public.concur.expense.report":
-      eventFactsHref = req.body.facts.href;
-      break;
-    case "public.concur.travel.itinerary":
-      eventFactsHref = JSON.stringify(req.body.facts.hrefs, null, 4);
-      break;
-    case "public.concur.user.profile.identity":
-      eventFactsHref = req.body.facts.userHref;
-      break;
-    case "public.concur.user.provisioning":
-      eventFactsHref = req.body.facts.provisionStatusHref;
-      break;
-    case "public.concur.document.tax.compliance":
-      eventFactsHref = req.body.facts.href;
-      break;
-    case "public.concur.financialintegration":
-      eventFactsHref = req.body.facts.href;
-      break;
-    case "public.concur.spend.accountingintegration":
-      if (req.body.facts && req.body.facts.data) {
-        const factsData = JSON.parse(req.body.facts.data);
-        if (factsData && factsData.links && factsData.links.length > 0) {
-          eventFactsHref = factsData.links[0].href;
-        }
-      }
-      break;
-    default:
-      eventFactsHref = req.body.facts.href;
-  }
-
-  let eventGeolocation = eventFactsHref
-    ? eventFactsHref
-        .substring(
-          eventFactsHref.lastIndexOf("//") + 2,
-          eventFactsHref.indexOf(".")
-        )
-        .toUpperCase()
-    : "N/A";
-
-  console.log(
-    common.getUTCDateTime() +
-      " >>> SUCCESS: EVENT RECEIVED. eventId:[" +
-      eventId +
-      "]"
-  );
-
-  const newEvent = new Event({
-    id: eventId,
-    timeStamp: eventTimeStamp,
-    type: eventType,
-    topic: eventTopic,
-    facts: eventFacts,
-    geolocation: eventGeolocation,
-    payload: eventPayload,
-    correlationId,
-    clientIpAddress,
-  });
-
-  newEvent.save(function (err) {
-    if (!err) {
-      console.log(
-        common.getUTCDateTime() +
-          " >>> SUCCESS: EVENT PAYLOAD SAVED: eventId[ " +
-          eventId +
-          "]"
-      );
-      res.status(200).send(eventId);
+    let eventTimeStamp = "";
+    if (req.body.timeStamp) {
+      eventTimeStamp = req.body.timeStamp.slice(0, 23);
     } else {
-      console.log(
-        common.getUTCDateTime() +
-          " >>> ERROR: FAILED TO SAVE EVENT PAYLOAD. ERR:" +
-          err
-      );
-      res.status(500).send("Failed to save event payload. Error:" + err);
+      eventTimeStamp = common.getUTCDateTime().slice(0, 23);
     }
-  });
+
+    console.log(common.getUTCDateTime() + " >>> RECEIVED EVENT NOTIFICATION. ");
+
+    const clientIpAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    console.log(
+      common.getUTCDateTime() + " >>> CLIENT IP ADDRESS: " + clientIpAddress
+    );
+
+    // Handle different event topics as needed
+    switch (eventTopic) {
+      case "public.concur.request":
+        eventFactsHref = req.body.facts.href;
+        break;
+      case "public.concur.expense.report":
+        eventFactsHref = req.body.facts.href;
+        break;
+      case "public.concur.travel.itinerary":
+        eventFactsHref = JSON.stringify(req.body.facts.hrefs, null, 4);
+        break;
+      case "public.concur.user.profile.identity":
+        eventFactsHref = req.body.facts.userHref;
+        break;
+      case "public.concur.user.provisioning":
+        eventFactsHref = req.body.facts.provisionStatusHref;
+        break;
+      case "public.concur.document.tax.compliance":
+        eventFactsHref = req.body.facts.href;
+        break;
+      case "public.concur.financialintegration":
+        eventFactsHref = req.body.facts.href;
+        break;
+      case "public.concur.spend.accountingintegration":
+        if (req.body.facts && req.body.facts.data) {
+          const factsData = JSON.parse(req.body.facts.data);
+          if (factsData && factsData.links && factsData.links.length > 0) {
+            eventFactsHref = factsData.links[0].href;
+          }
+        }
+        break;
+      default:
+        eventFactsHref = req.body.facts.href;
+    }
+
+    let eventGeolocation = eventFactsHref
+      ? eventFactsHref
+          .substring(
+            eventFactsHref.lastIndexOf("//") + 2,
+            eventFactsHref.indexOf(".")
+          )
+          .toUpperCase()
+      : "N/A";
+
+    console.log(
+      common.getUTCDateTime() +
+        " >>> SUCCESS: EVENT RECEIVED. eventId:[" +
+        eventId +
+        "]"
+    );
+
+    const newEvent = new Event({
+      id: eventId,
+      timeStamp: eventTimeStamp,
+      type: eventType,
+      topic: eventTopic,
+      facts: eventFacts,
+      geolocation: eventGeolocation,
+      payload: eventPayload,
+      correlationId,
+      clientIpAddress,
+    });
+
+    await newEvent.save();
+    console.log(
+      common.getUTCDateTime() +
+        " >>> SUCCESS: EVENT PAYLOAD SAVED: eventId[ " +
+        eventId +
+        "]"
+    );
+    res.status(200).send(eventId);
+  } catch (err) {
+    console.error(common.getUTCDateTime() + " >>> ERROR: FAILED TO PROCESS EVENT. ERR:", err);
+    res.status(500).json({
+      error: "Failed to process event",
+      message: err.message,
+      timestamp: common.getUTCDateTime()
+    });
+  }
 });
 
 //////////////////////////////////////////////////////
@@ -205,62 +203,86 @@ app.get("/", function (req, res) {
 });
 
 //////////////////////////////////////////////////////
-app.get("/events", function (req, res) {
-  // Retrieve the selected event topic from the query parameters
-  const selectedTopic = req.query.eventTopic || "";
+app.get("/events", async function (req, res) {
+  try {
+    const selectedTopic = req.query.eventTopic || "";
+    const filter = selectedTopic ? { topic: selectedTopic } : {};
 
-  // Define a filter object based on the selected topic
-  const filter = selectedTopic ? { topic: selectedTopic } : {};
+    console.log(
+      common.getUTCDateTime() +
+        " >>> HTTP GET: '/events/eventTopic='" +
+        selectedTopic
+    );
 
-  console.log(
-    common.getUTCDateTime() +
-      " >>> HTTP GET: '/events/eventTopic='" +
-      selectedTopic
-  );
+    const events = await Event.find(filter)
+      .sort({ timeStamp: "desc" })
+      .exec();
 
-  Event.find(filter)
-    .sort({ timeStamp: "desc" })
-    .exec(function (err, events) {
-      if (!err) {
-        console.log(
-          common.getUTCDateTime() +
-            " >>> SUCCESS: GET EVENTS: '/events/eventTopic='" +
-            selectedTopic
-        );
-        res.render("home", {
-          selectedTopic: selectedTopic,
-          events: events,
-        });
-      }
+    console.log(
+      common.getUTCDateTime() +
+        " >>> SUCCESS: RETRIEVED " + events.length + 
+        " EVENTS FOR TOPIC: '" + selectedTopic + "'"
+    );
+
+    res.render("home", {
+      selectedTopic: selectedTopic,
+      events: events,
     });
+  } catch (err) {
+    console.error(
+      common.getUTCDateTime() +
+        " >>> ERROR: FAILED TO RETRIEVE EVENTS. ERR: " +
+        err
+    );
+    res.status(500).json({
+      error: "Failed to retrieve events",
+      message: err.message,
+      timestamp: common.getUTCDateTime()
+    });
+  }
 });
 
 //////////////////////////////////////////////////////
-app.get("/events/:page", function (req, res) {
-  // find all event
-  const perPage = 10;
-  const page = req.params.page || 1;
+app.get("/events/:page", async function (req, res) {
+  try {
+    const perPage = 10;
+    const page = req.params.page || 1;
+    const selectedTopic = req.query.eventTopic || "";
 
-  // Added on Sept 6, 2023
-  // Retrieve the selected event topic from the query parameters
-  const selectedTopic = req.query.eventTopic || "";
+    console.log(common.getUTCDateTime() + " >>> HTTP GET: '/events/:page'");
 
-  console.log(common.getUTCDateTime() + " >>> HTTP GET: '/events/:page'");
-  Event.find({})
-    .sort({ timeStamp: "desc" })
-    .skip(perPage * page - perPage)
-    .limit(perPage)
-    .exec(function (err, events) {
-      Event.count().exec(function (errCount, count) {
-        if (errCount) return next(errCount);
-        res.render("events", {
-          events: events,
-          current: page,
-          selectedTopic: selectedTopic, // Pass the selectedTopic to the template
-          pages: Math.ceil(count / perPage),
-        });
-      });
+    const [events, count] = await Promise.all([
+      Event.find({})
+        .sort({ timeStamp: "desc" })
+        .skip(perPage * page - perPage)
+        .limit(perPage)
+        .exec(),
+      Event.countDocuments().exec()
+    ]);
+
+    res.render("events", {
+      events: events,
+      current: page,
+      selectedTopic: selectedTopic,
+      pages: Math.ceil(count / perPage),
     });
+
+    console.log(
+      common.getUTCDateTime() + 
+      " >>> SUCCESS: RETRIEVED EVENTS FOR PAGE " + page
+    );
+  } catch (err) {
+    console.error(
+      common.getUTCDateTime() + 
+      " >>> ERROR: FAILED TO RETRIEVE EVENTS. ERR:", 
+      err
+    );
+    res.status(500).json({
+      error: "Failed to retrieve events",
+      message: err.message,
+      timestamp: common.getUTCDateTime()
+    });
+  }
 });
 ///////////////////////////////////////////////////////
 
@@ -269,165 +291,155 @@ app.get('/robots.txt', function(req, res){
   res.send('User-agent: *\nDisallow: /');
 });
 
-app.get("/event/:eventId", function (req, res) {
-  // const requestId = req.params.eventId.replace(/-/g, "");
-  const requestEventId = req.params.eventId;
-  console.log(
-    common.getUTCDateTime() + " >>> HTTP GET: '/event/" + requestEventId
-  );
+app.get("/event/:eventId", async function (req, res) {
+  try {
+    const requestEventId = req.params.eventId;
+    console.log(
+      common.getUTCDateTime() + " >>> HTTP GET: '/event/" + requestEventId
+    );
 
-  Event.findOne({ id: requestEventId }, function (err, event) {
-    if (!err) {
-      res.render("event", {
-        id: event.id,
-        timeStamp: event.timeStamp,
-        type: event.type,
-        topic: event.topic,
-        geolocation: event.geolocation,
-        payload: event.payload,
-        correlationId: event.correlationId,
-        clientIpAddress: event.clientIpAddress,
-      });
-      console.log(
-        common.getUTCDateTime() +
-          " >>> SUCCESS: RETRIEVE EVENT: eventId [" +
-          event.id +
-          " ]."
-      );
-    } else {
-      console.log(
-        common.getUTCDateTime() +
-          " >>> ERROR: RETRIEVE EVENT: eventId [" +
-          event.id +
-          " ] IS NOT FOUND. ERR: " +
-          err
-      );
+    const event = await Event.findOne({ id: requestEventId }).exec();
+    
+    if (!event) {
+      throw new Error(`Event with ID ${requestEventId} not found`);
     }
-  });
-});
 
-///////////////////////////////////////////////////////
-app.post("/eventdelete/:eventId", function (req, res) {
-  // const requestId = req.params.eventId.replace(/-/g, "");
-  const requestEventId = req.params.eventId;
-  console.log(
-    common.getUTCDateTime() + " >>> HTTP POST: '/eventdelete/" + requestEventId
-  );
-
-  Event.findOneAndDelete({ id: requestEventId }, function (err) {
-    if (!err) {
-      res.redirect("/");
-      console.log(
-        common.getUTCDateTime() +
-          " >>> SUCCESS: DELETE EVENT: eventId [" +
-          requestEventId +
-          " ]"
-      );
-    } else {
-      console.log(
-        common.getUTCDateTime() +
-          " >>> ERROR: DELETE EVENT: eventId [" +
-          requestEventId +
-          " ]. ERR:" +
-          err
-      );
-    }
-  });
-});
-
-///////////////////////////////////////////////////////
-app.post("/deleteallevents", function (req, res) {
-  // const requestId = req.params.eventId.replace(/-/g, "");
-  console.log(common.getUTCDateTime() + " >>> HTTP POST: '/deleteallevents/");
-
-  Event.deleteMany({}, function (err) {
-    if (!err) {
-      res.redirect("/");
-      console.log(
-        common.getUTCDateTime() + " >>> SUCCESS: DELETE ALL EVENTS SUCCESS."
-      );
-    } else {
-      console.log(
-        common.getUTCDateTime() +
-          " >>> ERROR: DELETE ALL EVENTS FAILESD. ERR:" +
-          err
-      );
-    }
-  });
-});
-
-///////////////////////////////////////////////////////
-app.post("/eventsearch", function (req, res) {
-  console.log(common.getUTCDateTime() + " >>> HTTP POST: '/eventsearch/");
-  const searchText = req.body.keyword;
-  const queryOptions = {
-    payload: {
-      $regex: searchText,
-      $options: "i",
-    },
-  };
-  Event.find(queryOptions)
-    .sort({ timeStamp: "desc" })
-    .exec(function (err, events) {
-      if (!err) {
-        console.log(
-          common.getUTCDateTime() +
-            " >>> SUCCESS: SEARCH TEXT [" +
-            searchText +
-            "], FOUND " +
-            events.length +
-            " RECORDS."
-        );
-        res.render("results", {
-          events: events,
-          keyword: searchText,
-        });
-      } else {
-        console.log(
-          common.getUTCDateTime() +
-            " >>> ERROR: SEARCH TEXT [" +
-            searchText +
-            "] FAILED. ERR:" +
-            err
-        );
-      }
+    res.render("event", {
+      id: event.id,
+      timeStamp: event.timeStamp,
+      type: event.type,
+      topic: event.topic,
+      geolocation: event.geolocation,
+      payload: event.payload,
+      correlationId: event.correlationId,
+      clientIpAddress: event.clientIpAddress,
     });
+
+    console.log(
+      common.getUTCDateTime() +
+        " >>> SUCCESS: RETRIEVE EVENT: eventId [" +
+        event.id +
+        " ]."
+    );
+  } catch (err) {
+    console.error(
+      common.getUTCDateTime() +
+        " >>> ERROR: RETRIEVE EVENT. ERR: " +
+        err
+    );
+    res.status(404).json({
+      error: "Event not found",
+      message: err.message,
+      timestamp: common.getUTCDateTime()
+    });
+  }
 });
 
 ///////////////////////////////////////////////////////
-app.post("/eventsearch/", function (req, res) {
-  console.log(common.getUTCDateTime() + " >>> HTTP POST: '/eventsearch/");
-  const searchText = req.body.keyword;
-  const queryOptions = {
-    payload: {
-      $regex: searchText,
-      $options: "i",
-    },
-  };
-  Event.find(queryOptions)
-    .sort({ timeStamp: "desc" })
-    .exec(function (err, events) {
-      if (!err) {
-        console.log(
-          common.getUTCDateTime() +
-            " >>> SUCCESS: SEARCH TEXT [" +
-            searchText +
-            "], FOUND " +
-            events.length +
-            " RECORDS."
-        );
-        res.render("results", {
-          events: events,
-          keyword: searchText,
-        });
-      } else {
-        console.log(
-          common.getUTCDateTime() +
-            " >>> ERROR: SEARCH TEXT [" +
-            searchText +
-            "] FAILED. ERR: " +
-            err
-        );
-      }
+app.post("/eventdelete/:eventId", async function (req, res) {
+  try {
+    const requestEventId = req.params.eventId;
+    console.log(
+      common.getUTCDateTime() + " >>> HTTP POST: '/eventdelete/" + requestEventId
+    );
+
+    const result = await Event.findOneAndDelete({ id: requestEventId }).exec();
+    
+    if (!result) {
+      throw new Error(`Event with ID ${requestEventId} not found`);
+    }
+
+    res.redirect("/");
+    console.log(
+      common.getUTCDateTime() +
+        " >>> SUCCESS: DELETE EVENT: eventId [" +
+        requestEventId +
+        " ]"
+    );
+  } catch (err) {
+    console.error(
+      common.getUTCDateTime() +
+        " >>> ERROR: DELETE EVENT. ERR: " +
+        err
+    );
+    res.status(404).json({
+      error: "Failed to delete event",
+      message: err.message,
+      timestamp: common.getUTCDateTime()
     });
+  }
+});
+
+///////////////////////////////////////////////////////
+app.post("/deleteallevents", async function (req, res) {
+  try {
+    console.log(common.getUTCDateTime() + " >>> HTTP POST: '/deleteallevents/");
+
+    const result = await Event.deleteMany({}).exec();
+    
+    if (result.deletedCount === 0) {
+      throw new Error("No events found to delete");
+    }
+
+    res.redirect("/");
+    console.log(
+      common.getUTCDateTime() + 
+      " >>> SUCCESS: DELETED " + result.deletedCount + " EVENTS"
+    );
+  } catch (err) {
+    console.error(
+      common.getUTCDateTime() +
+        " >>> ERROR: DELETE ALL EVENTS FAILED. ERR: " +
+        err
+    );
+    res.status(500).json({
+      error: "Failed to delete all events",
+      message: err.message,
+      timestamp: common.getUTCDateTime()
+    });
+  }
+});
+
+///////////////////////////////////////////////////////
+app.post("/eventsearch", async function (req, res) {
+  try {
+    const searchText = req.body.keyword;
+    console.log(common.getUTCDateTime() + " >>> HTTP POST: '/eventsearch/");
+
+    const queryOptions = {
+      payload: {
+        $regex: searchText,
+        $options: "i",
+      },
+    };
+
+    const events = await Event.find(queryOptions)
+      .sort({ timeStamp: "desc" })
+      .exec();
+
+    console.log(
+      common.getUTCDateTime() +
+        " >>> SUCCESS: SEARCH TEXT [" +
+        searchText +
+        "], FOUND " +
+        events.length +
+        " RECORDS."
+    );
+
+    res.render("results", {
+      events: events,
+      keyword: searchText,
+    });
+  } catch (err) {
+    console.error(
+      common.getUTCDateTime() +
+        " >>> ERROR: SEARCH TEXT FAILED. ERR: " +
+        err
+    );
+    res.status(500).json({
+      error: "Search failed",
+      message: err.message,
+      timestamp: common.getUTCDateTime()
+    });
+  }
 });
