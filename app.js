@@ -264,6 +264,11 @@ app.get("/events/:page", function (req, res) {
 });
 ///////////////////////////////////////////////////////
 
+app.get('/robots.txt', function(req, res){
+  res.type('text/plain');
+  res.send('User-agent: *\nDisallow: /');
+});
+
 app.get("/event/:eventId", function (req, res) {
   // const requestId = req.params.eventId.replace(/-/g, "");
   const requestEventId = req.params.eventId;
