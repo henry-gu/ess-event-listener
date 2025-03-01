@@ -406,9 +406,14 @@ app.post("/eventsearch", async function (req, res) {
     const searchText = req.body.keyword;
     console.log(common.getUTCDateTime() + " >>> HTTP POST: '/eventsearch/");
 
+    // Validate search text is a non-empty string
+    if (typeof searchText !== 'string' || searchText.trim().length === 0) {
+      throw new Error('Search keyword must be a non-empty string');
+    }
+
     const queryOptions = {
       payload: {
-        $regex: searchText,
+        $regex: searchText.trim(),
         $options: "i",
       },
     };
