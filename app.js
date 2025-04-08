@@ -11,6 +11,8 @@ const cron = require("node-cron"); // added on Sept 6, 2023
 
 const connectString = process.env.DB_CONNECT_STRING;
 const port = parseInt(process.env.PORT) || 3030;
+const leu_user = process.env.LEU_USER;
+const leu_password = process.env.LEU_PASSWORD;
 
 mongoose.connect(connectString);
 
