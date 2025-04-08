@@ -286,6 +286,41 @@ app.get("/events/:page", async function (req, res) {
     });
   }
 });
+
+////////////////////////////////////////////////////
+
+app.get('/system/v1.0/testconnection', function(req, res) {
+  // Extract the Authorization header
+  const authHeader = req.headers.authorization;
+
+  // Check if header exists and starts with 'Basic '
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    return res.status(500).send('authorization failed');
+  }
+
+  // Extract the base64-encoded credentials
+  const authValue = authHeader.substring(6).trim();
+
+  let decoded;
+  try {
+    // Decode base64 string to get username:password
+    decoded = Buffer.from(authValue, 'base64').toString('utf-8');
+  } catch (err) {
+    // Handle decoding errors (e.g., invalid base64)
+    return res.status(500).send('authorization failed');
+  }
+
+  // Split into username and password
+  const [username, password] = decoded.split(':');
+
+  // Compare with leu_user and leu_password
+  if (username === leu_user && password === leu_password) {
+    return res.status(200).send(); // Success: 200 with empty body
+  } else {
+    return res.status(500).send('authorization failed'); // Failure: 500 with error message
+  }
+});
+
 ///////////////////////////////////////////////////////
 
 app.get('/robots.txt', function(req, res){
