@@ -1,487 +1,544 @@
-//jshint esversion:6
+// jshint esversion:11
 require("dotenv").config();
 
+const crypto = require("crypto");
 const express = require("express");
-const bodyParser = require("body-parser");
-const ejs = require("ejs");
-const app = express();
-const common = require(__dirname + "/common.js");
 const mongoose = require("mongoose");
-const cron = require("node-cron"); // added on Sept 6, 2023
+const cron = require("node-cron");
+const common = require("./common.js");
 
-const connectString = process.env.DB_CONNECT_STRING;
-const port = parseInt(process.env.PORT) || 3030;
-const leu_user = process.env.LEU_USER;
-const leu_password = process.env.LEU_PASSWORD;
+const DEFAULT_PORT = 3030;
+const DEFAULT_RECORD_AGE_DAYS = 7;
+const PAGE_SIZE = 10;
+const SEARCH_RESULT_LIMIT = 100;
+const MAX_SEARCH_LENGTH = 100;
+const MAX_EVENT_ID_LENGTH = 256;
 
-mongoose.connect(connectString);
+const eventSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, unique: true },
+    timeStamp: { type: Date, required: true, index: true },
+    receivedAt: { type: Date, required: true, default: Date.now, index: true },
+    type: { type: String, default: "" },
+    topic: { type: String, default: "" },
+    facts: { type: String, default: "{}" },
+    geolocation: { type: String, default: "N/A" },
+    payload: { type: String, required: true },
+    correlationId: { type: String, default: "" },
+    clientIpAddress: { type: String, default: "" },
+  },
+  { versionKey: false, autoIndex: false }
+);
 
-const eventSchema = {
-  id: String,
-  timeStamp: String,
-  type: String,
-  topic: String,
-  facts: String,
-  geolocation: String,
-  payload: String,
-  correlationId: String,
-  clientIpAddress: String,
-};
-const Event = mongoose.model("Event", eventSchema);
+const Event = mongoose.models.Event || mongoose.model("Event", eventSchema);
 
-////////////////////////////////////////////////////
-
-function deleteOldRecords() {
-  const recordAge = parseInt(process.env.RECORD_AGE) || 7; // Get RECORD_AGE from environment variable, default to 7 days if not set
-  const lastDeleteDate = common.getLastDeleteDate() || new Date(0); // Get the last delete date from common module, default to the epoch if not set
-
-  const currentDate = new Date();
-  const minimumDeleteDate = new Date(currentDate);
-  minimumDeleteDate.setDate(minimumDeleteDate.getDate() - recordAge); // Calculate the minimum delete date based on the record age
-
-  if (currentDate - lastDeleteDate >= 24 * 60 * 60 * 1000) {
-    // Check if the current date is at least 24 hours after the last delete date
-    Event.deleteMany(
-      { timeStamp: { $lt: minimumDeleteDate.toISOString() } },
-      (err) => {
-        if (err) {
-          console.error(
-            common.getUTCDateTime() +
-              " >>> ERROR: FAILED TO DELETE OLD RECORDS. ERR:",
-            err
-          );
-        } else {
-          console.log(
-            common.getUTCDateTime() +
-              ` >>> SUCCESS: RECORDS OLDER THAN ${recordAge} DAYS ARE DELETED.`
-          );
-
-          // Update the lastDeleteDate in the common module
-          common.setLastDeleteDate(currentDate);
-        }
-      }
-    );
+class HttpError extends Error {
+  constructor(status, publicMessage) {
+    super(publicMessage);
+    this.status = status;
+    this.publicMessage = publicMessage;
   }
 }
 
-// Schedule the deleteOldRecords function to run every 2 days at 01:00AM
-cron.schedule(
-  "0 0 1 */2 * *",
-  () => {
-    console.log(common.getUTCDateTime() + " CRON JOB STARTS.");
-    deleteOldRecords();
-  },
-  {
-    scheduled: true,
-    timezone: "Asia/Shanghai", // Set the timezone to match China's timezone
+function requiredEnvironment(name, environment) {
+  const value = environment[name];
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`Missing required environment variable: ${name}`);
   }
-);
+  return value;
+}
 
-app.use(
-  express.urlencoded({
-    extended: true,
-  })
-);
-app.use(express.json());
-app.use(express.static("public"));
-app.set("view engine", "ejs");
+function positiveInteger(value, fallback, name) {
+  if (value === undefined || value === "") return fallback;
+  if (!/^\d+$/.test(String(value)) || Number(value) < 1) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  return Number(value);
+}
 
-////////////////////////////////////////////////////
-app.listen(port, function (req, res) {
-  console.log("SERVER IS LISTENING AT PORT " + port + "......");
-});
+function trustProxySetting(value) {
+  if (value === undefined || value === "") return false;
+  return positiveInteger(value, 0, "TRUST_PROXY");
+}
 
-///////////////////////////////////////////////////////
-app.post("/eventlistener", async function (req, res) {
-  try {
-    let eventId = req.body.id || "";
-    let eventTopic = req.body.topic || "";
-    let correlationId = req.body.correlationId || "";
-    let eventPayload = JSON.stringify(req.body, null, 4);
-    let eventFacts = JSON.stringify(req.body.facts, null, 4);
-    let eventType = req.body.eventType || "";
-    let eventFactsHref = "";
+function loadConfig(environment = process.env) {
+  return {
+    dbConnectString: requiredEnvironment("DB_CONNECT_STRING", environment),
+    port: positiveInteger(environment.PORT, DEFAULT_PORT, "PORT"),
+    recordAgeDays: positiveInteger(
+      environment.RECORD_AGE,
+      DEFAULT_RECORD_AGE_DAYS,
+      "RECORD_AGE"
+    ),
+    leuUser: requiredEnvironment("LEU_USER", environment),
+    leuPassword: requiredEnvironment("LEU_PASSWORD", environment),
+    adminUser: requiredEnvironment("ADMIN_USER", environment),
+    adminPassword: requiredEnvironment("ADMIN_PASSWORD", environment),
+    trustProxy: trustProxySetting(environment.TRUST_PROXY),
+    production: environment.NODE_ENV === "production",
+  };
+}
 
-    let eventTimeStamp = "";
-    if (req.body.timeStamp) {
-      eventTimeStamp = req.body.timeStamp.slice(0, 23);
-    } else {
-      eventTimeStamp = common.getUTCDateTime().slice(0, 23);
+function secureEqual(actual, expected) {
+  const actualBuffer = Buffer.from(String(actual));
+  const expectedBuffer = Buffer.from(String(expected));
+  return (
+    actualBuffer.length === expectedBuffer.length &&
+    crypto.timingSafeEqual(actualBuffer, expectedBuffer)
+  );
+}
+
+function basicCredentials(header) {
+  if (typeof header !== "string" || !header.startsWith("Basic ")) return null;
+
+  const encoded = header.slice(6).trim();
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(encoded)) return null;
+
+  const decoded = Buffer.from(encoded, "base64").toString("utf8");
+  const separator = decoded.indexOf(":");
+  if (separator < 0) return null;
+
+  return {
+    username: decoded.slice(0, separator),
+    password: decoded.slice(separator + 1),
+  };
+}
+
+function basicAuth(expectedUser, expectedPassword, realm) {
+  return function authenticate(req, res, next) {
+    const credentials = basicCredentials(req.headers.authorization);
+    const authenticated =
+      credentials &&
+      secureEqual(credentials.username, expectedUser) &&
+      secureEqual(credentials.password, expectedPassword);
+
+    if (!authenticated) {
+      res.set("WWW-Authenticate", `Basic realm="${realm}", charset="UTF-8"`);
+      res.set("Cache-Control", "no-store");
+      return res.status(401).send("Unauthorized");
     }
+    res.set("Cache-Control", "no-store");
+    return next();
+  };
+}
 
-    console.log(common.getUTCDateTime() + " >>> RECEIVED EVENT NOTIFICATION. ");
-
-    const clientIpAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-    console.log(
-      common.getUTCDateTime() + " >>> CLIENT IP ADDRESS: " + clientIpAddress
-    );
-
-    // Handle different event topics as needed
-    switch (eventTopic) {
-      case "public.concur.request":
-        eventFactsHref = req.body.facts.href;
-        break;
-      case "public.concur.expense.report":
-        eventFactsHref = req.body.facts.href;
-        break;
-      case "public.concur.travel.itinerary":
-        eventFactsHref = JSON.stringify(req.body.facts.hrefs, null, 4);
-        break;
-      case "public.concur.user.profile.identity":
-        eventFactsHref = req.body.facts.userHref;
-        break;
-      case "public.concur.user.provisioning":
-        eventFactsHref = req.body.facts.provisionStatusHref;
-        break;
-      case "public.concur.document.tax.compliance":
-        eventFactsHref = req.body.facts.href;
-        break;
-      case "public.concur.financialintegration":
-        eventFactsHref = req.body.facts.href;
-        break;
-      case "public.concur.spend.accountingintegration":
-        if (req.body.facts && req.body.facts.data) {
-          const factsData = JSON.parse(req.body.facts.data);
-          if (factsData && factsData.links && factsData.links.length > 0) {
-            eventFactsHref = factsData.links[0].href;
-          }
-        }
-        break;
-      default:
-        eventFactsHref = req.body.facts.href;
+function parseCookies(cookieHeader = "") {
+  return cookieHeader.split(";").reduce((cookies, part) => {
+    const separator = part.indexOf("=");
+    if (separator < 0) return cookies;
+    const key = part.slice(0, separator).trim();
+    const value = part.slice(separator + 1).trim();
+    if (key) {
+      try {
+        cookies[key] = decodeURIComponent(value);
+      } catch (_error) {
+        // Ignore malformed cookie values instead of failing the request.
+      }
     }
+    return cookies;
+  }, {});
+}
 
-    let eventGeolocation = eventFactsHref
-      ? eventFactsHref
-          .substring(
-            eventFactsHref.lastIndexOf("//") + 2,
-            eventFactsHref.indexOf(".")
-          )
-          .toUpperCase()
-      : "N/A";
+function csrfToken(req, res, production) {
+  const cookies = parseCookies(req.headers.cookie);
+  const existing = cookies.csrf_token;
+  const token = /^[a-f0-9]{64}$/.test(existing || "")
+    ? existing
+    : crypto.randomBytes(32).toString("hex");
 
-    console.log(
-      common.getUTCDateTime() +
-        " >>> SUCCESS: EVENT RECEIVED. eventId:[" +
-        eventId +
-        "]"
-    );
-
-    const newEvent = new Event({
-      id: eventId,
-      timeStamp: eventTimeStamp,
-      type: eventType,
-      topic: eventTopic,
-      facts: eventFacts,
-      geolocation: eventGeolocation,
-      payload: eventPayload,
-      correlationId,
-      clientIpAddress,
-    });
-
-    await newEvent.save();
-    console.log(
-      common.getUTCDateTime() +
-        " >>> SUCCESS: EVENT PAYLOAD SAVED: eventId[ " +
-        eventId +
-        "]"
-    );
-    res.status(200).send(eventId);
-  } catch (err) {
-    console.error(common.getUTCDateTime() + " >>> ERROR: FAILED TO PROCESS EVENT. ERR:", err);
-    res.status(500).json({
-      error: "Failed to process event",
-      message: err.message,
-      timestamp: common.getUTCDateTime()
+  if (token !== existing) {
+    res.cookie("csrf_token", token, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: production,
+      path: "/",
     });
   }
-});
+  return token;
+}
 
-//////////////////////////////////////////////////////
-app.get("/", function (req, res) {
-  // find all event
-  console.log(common.getUTCDateTime() + " >>> HTTP GET: '/'");
-  res.redirect("events/1");
-});
-
-//////////////////////////////////////////////////////
-app.get("/events", async function (req, res) {
-  try {
-    const selectedTopic = req.query.eventTopic || "";
-    const filter = selectedTopic ? { topic: selectedTopic } : {};
-
-    console.log(
-      common.getUTCDateTime() +
-        " >>> HTTP GET: '/events/eventTopic='" +
-        selectedTopic
-    );
-
-    const events = await Event.find(filter)
-      .sort({ timeStamp: "desc" })
-      .exec();
-
-    console.log(
-      common.getUTCDateTime() +
-        " >>> SUCCESS: RETRIEVED " + events.length + 
-        " EVENTS FOR TOPIC: '" + selectedTopic + "'"
-    );
-
-    res.render("home", {
-      selectedTopic: selectedTopic,
-      events: events,
-    });
-  } catch (err) {
-    console.error(
-      common.getUTCDateTime() +
-        " >>> ERROR: FAILED TO RETRIEVE EVENTS. ERR: " +
-        err
-    );
-    res.status(500).json({
-      error: "Failed to retrieve events",
-      message: err.message,
-      timestamp: common.getUTCDateTime()
-    });
+function verifyCsrf(req, _res, next) {
+  const cookieToken = parseCookies(req.headers.cookie).csrf_token || "";
+  const bodyToken = req.body && typeof req.body._csrf === "string" ? req.body._csrf : "";
+  if (!secureEqual(cookieToken, bodyToken) || !/^[a-f0-9]{64}$/.test(cookieToken)) {
+    return next(new HttpError(403, "Invalid CSRF token"));
   }
-});
+  return next();
+}
 
-//////////////////////////////////////////////////////
-app.get("/events/:page", async function (req, res) {
-  try {
-    const perPage = 10;
-    const page = req.params.page || 1;
-    const selectedTopic = req.query.eventTopic || "";
+function asyncRoute(handler) {
+  return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
+}
 
-    console.log(common.getUTCDateTime() + " >>> HTTP GET: '/events/:page'");
-
-    const [events, count] = await Promise.all([
-      Event.find({})
-        .sort({ timeStamp: "desc" })
-        .skip(perPage * page - perPage)
-        .limit(perPage)
-        .exec(),
-      Event.countDocuments().exec()
-    ]);
-
-    res.render("events", {
-      events: events,
-      current: page,
-      selectedTopic: selectedTopic,
-      pages: Math.ceil(count / perPage),
-    });
-
-    console.log(
-      common.getUTCDateTime() + 
-      " >>> SUCCESS: RETRIEVED EVENTS FOR PAGE " + page
-    );
-  } catch (err) {
-    console.error(
-      common.getUTCDateTime() + 
-      " >>> ERROR: FAILED TO RETRIEVE EVENTS. ERR:", 
-      err
-    );
-    res.status(500).json({
-      error: "Failed to retrieve events",
-      message: err.message,
-      timestamp: common.getUTCDateTime()
-    });
+function stringField(value, name, { required = false, max = 512 } = {}) {
+  if (value === undefined || value === null) {
+    if (required) throw new HttpError(400, `${name} is required`);
+    return "";
   }
-});
+  if (typeof value !== "string") throw new HttpError(400, `${name} must be a string`);
+  const trimmed = value.trim();
+  if (required && !trimmed) throw new HttpError(400, `${name} is required`);
+  if (trimmed.length > max) throw new HttpError(400, `${name} is too long`);
+  return trimmed;
+}
 
-////////////////////////////////////////////////////
+function eventTimeStamp(value) {
+  if (value === undefined || value === null || value === "") return new Date();
+  if (typeof value !== "string") throw new HttpError(400, "timeStamp must be a string");
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) throw new HttpError(400, "timeStamp is invalid");
+  return parsed;
+}
 
-app.get('/system/v1.0/testconnection', function(req, res) {
-  // Extract the Authorization header
-  const authHeader = req.headers.authorization;
+function extractFactsHref(topic, facts) {
+  if (!facts || typeof facts !== "object" || Array.isArray(facts)) return "";
 
-  // Check if header exists and starts with 'Basic '
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
-    return res.status(500).send('authorization failed');
+  if (topic === "public.concur.travel.itinerary") {
+    return Array.isArray(facts.hrefs)
+      ? facts.hrefs.find((href) => typeof href === "string") || ""
+      : "";
   }
-
-  // Extract the base64-encoded credentials
-  const authValue = authHeader.substring(6).trim();
-
-  let decoded;
-  try {
-    // Decode base64 string to get username:password
-    decoded = Buffer.from(authValue, 'base64').toString('utf-8');
-  } catch (err) {
-    // Handle decoding errors (e.g., invalid base64)
-    return res.status(500).send('authorization failed');
-  }
-
-  // Split into username and password
-  const [username, password] = decoded.split(':');
-
-  // Compare with leu_user and leu_password
-  if (username === leu_user && password === leu_password) {
-    return res.status(200).send(); // Success: 200 with empty body
-  } else {
-    return res.status(500).send('authorization failed'); // Failure: 500 with error message
-  }
-});
-
-///////////////////////////////////////////////////////
-
-app.get('/robots.txt', function(req, res){
-  res.type('text/plain');
-  res.send('User-agent: *\nDisallow: /');
-});
-
-app.get("/event/:eventId", async function (req, res) {
-  try {
-    const requestEventId = req.params.eventId;
-    console.log(
-      common.getUTCDateTime() + " >>> HTTP GET: '/event/" + requestEventId
-    );
-
-    const event = await Event.findOne({ id: requestEventId }).exec();
-    
-    if (!event) {
-      throw new Error(`Event with ID ${requestEventId} not found`);
+  if (topic === "public.concur.user.profile.identity") return facts.userHref || "";
+  if (topic === "public.concur.user.provisioning") return facts.provisionStatusHref || "";
+  if (topic === "public.concur.spend.accountingintegration" && facts.data) {
+    let data;
+    try {
+      data = typeof facts.data === "string" ? JSON.parse(facts.data) : facts.data;
+    } catch (_error) {
+      throw new HttpError(400, "facts.data contains invalid JSON");
     }
-
-    res.render("event", {
-      id: event.id,
-      timeStamp: event.timeStamp,
-      type: event.type,
-      topic: event.topic,
-      geolocation: event.geolocation,
-      payload: event.payload,
-      correlationId: event.correlationId,
-      clientIpAddress: event.clientIpAddress,
-    });
-
-    console.log(
-      common.getUTCDateTime() +
-        " >>> SUCCESS: RETRIEVE EVENT: eventId [" +
-        event.id +
-        " ]."
-    );
-  } catch (err) {
-    console.error(
-      common.getUTCDateTime() +
-        " >>> ERROR: RETRIEVE EVENT. ERR: " +
-        err
-    );
-    res.status(404).json({
-      error: "Event not found",
-      message: err.message,
-      timestamp: common.getUTCDateTime()
-    });
+    return data && Array.isArray(data.links) && data.links[0]
+      ? data.links[0].href || ""
+      : "";
   }
-});
+  return typeof facts.href === "string" ? facts.href : "";
+}
 
-///////////////////////////////////////////////////////
-app.post("/eventdelete/:eventId", async function (req, res) {
+function geolocationFromHref(href) {
+  if (typeof href !== "string" || !href) return "N/A";
   try {
-    const requestEventId = req.params.eventId;
-    console.log(
-      common.getUTCDateTime() + " >>> HTTP POST: '/eventdelete/" + requestEventId
-    );
-
-    const result = await Event.findOneAndDelete({ id: requestEventId }).exec();
-    
-    if (!result) {
-      throw new Error(`Event with ID ${requestEventId} not found`);
-    }
-
-    res.redirect("/");
-    console.log(
-      common.getUTCDateTime() +
-        " >>> SUCCESS: DELETE EVENT: eventId [" +
-        requestEventId +
-        " ]"
-    );
-  } catch (err) {
-    console.error(
-      common.getUTCDateTime() +
-        " >>> ERROR: DELETE EVENT. ERR: " +
-        err
-    );
-    res.status(404).json({
-      error: "Failed to delete event",
-      message: err.message,
-      timestamp: common.getUTCDateTime()
-    });
+    const hostname = new URL(href).hostname;
+    return hostname ? hostname.split(".")[0].toUpperCase() : "N/A";
+  } catch (_error) {
+    return "N/A";
   }
-});
+}
 
-///////////////////////////////////////////////////////
-app.post("/deleteallevents", async function (req, res) {
-  try {
-    console.log(common.getUTCDateTime() + " >>> HTTP POST: '/deleteallevents/");
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
-    const result = await Event.deleteMany({}).exec();
-    
-    if (result.deletedCount === 0) {
-      throw new Error("No events found to delete");
-    }
-
-    res.redirect("/");
-    console.log(
-      common.getUTCDateTime() + 
-      " >>> SUCCESS: DELETED " + result.deletedCount + " EVENTS"
-    );
-  } catch (err) {
-    console.error(
-      common.getUTCDateTime() +
-        " >>> ERROR: DELETE ALL EVENTS FAILED. ERR: " +
-        err
-    );
-    res.status(500).json({
-      error: "Failed to delete all events",
-      message: err.message,
-      timestamp: common.getUTCDateTime()
-    });
+function pageNumber(value) {
+  if (!/^[1-9]\d*$/.test(String(value))) throw new HttpError(400, "Invalid page number");
+  const page = Number(value);
+  if (!Number.isSafeInteger(page) || page > 1_000_000) {
+    throw new HttpError(400, "Invalid page number");
   }
-});
+  return page;
+}
 
-///////////////////////////////////////////////////////
-app.post("/eventsearch", async function (req, res) {
-  try {
-    const searchText = req.body.keyword;
-    console.log(common.getUTCDateTime() + " >>> HTTP POST: '/eventsearch/; keyword:"+searchText+"}");
+function formatEvent(event) {
+  return {
+    ...event,
+    displayTimeStamp:
+      event.timeStamp instanceof Date
+        ? event.timeStamp.toISOString().slice(0, 23)
+        : new Date(event.timeStamp).toISOString().slice(0, 23),
+  };
+}
 
-    // Validate search text is a non-empty string
-    if (typeof searchText !== 'string' || searchText.trim().length === 0) {
-      throw new Error('Search keyword must be a non-empty string');
-    }
+async function deleteOldRecords(EventModel, recordAgeDays) {
+  const cutoff = new Date(Date.now() - recordAgeDays * 24 * 60 * 60 * 1000);
+  const result = await EventModel.deleteMany({ receivedAt: { $lt: cutoff } });
+  console.log(
+    `${common.getUTCDateTime()} >>> SUCCESS: DELETED ${result.deletedCount} RECORDS OLDER THAN ${recordAgeDays} DAYS.`
+  );
+}
 
-    const queryOptions = {
-      payload: {
-        $regex: searchText.trim(),
-        $options: "i",
+async function migrateLegacyEvents(EventModel) {
+  await EventModel.collection.updateMany(
+    { $or: [{ id: { $not: { $type: "string" } } }, { id: "" }] },
+    [{ $set: { id: { $concat: ["legacy-", { $toString: "$_id" }] } } }]
+  );
+  await EventModel.collection.updateMany(
+    { timeStamp: { $not: { $type: "date" } } },
+    [
+      {
+        $set: {
+          timeStamp: {
+            $convert: { input: "$timeStamp", to: "date", onError: "$$NOW", onNull: "$$NOW" },
+          },
+        },
       },
-    };
+    ]
+  );
+  await EventModel.collection.updateMany(
+    { receivedAt: { $exists: false } },
+    [
+      {
+        $set: {
+          receivedAt: {
+            $convert: { input: "$_id", to: "date", onError: "$$NOW", onNull: "$$NOW" },
+          },
+        },
+      },
+    ]
+  );
+}
 
-    const events = await Event.find(queryOptions)
-      .sort({ timeStamp: "desc" })
-      .exec();
+function createApp({ EventModel = Event, config }) {
+  const app = express();
+  const adminAuth = basicAuth(config.adminUser, config.adminPassword, "ESS Event Admin");
+  const leuAuth = basicAuth(config.leuUser, config.leuPassword, "ESS Event Listener");
 
-    console.log(
-      common.getUTCDateTime() +
-        " >>> SUCCESS: SEARCH TEXT [" +
-        searchText +
-        "], FOUND " +
-        events.length +
-        " RECORDS."
-    );
-
-    res.render("results", {
-      events: events,
-      keyword: searchText,
+  if (config.trustProxy) app.set("trust proxy", config.trustProxy);
+  app.disable("x-powered-by");
+  app.set("view engine", "ejs");
+  app.use(express.urlencoded({ extended: false, limit: "64kb", parameterLimit: 50 }));
+  app.use(express.json({ limit: "1mb", strict: true }));
+  app.use((_req, res, next) => {
+    res.set({
+      "Content-Security-Policy":
+        "default-src 'self'; style-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; " +
+        "script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
+      "Referrer-Policy": "no-referrer",
+      "X-Content-Type-Options": "nosniff",
     });
-  } catch (err) {
-    console.error(
-      common.getUTCDateTime() +
-        " >>> ERROR: SEARCH TEXT FAILED. ERR: " +
-        err
-    );
-    res.status(500).json({
-      error: "Search failed",
-      message: err.message,
-      timestamp: common.getUTCDateTime()
+    if (config.production) {
+      res.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
+    next();
+  });
+  app.use(express.static("public"));
+
+  app.post(
+    "/eventlistener",
+    leuAuth,
+    asyncRoute(async (req, res) => {
+      if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+        throw new HttpError(400, "Request body must be a JSON object");
+      }
+
+      const id = stringField(req.body.id, "id", { required: true, max: MAX_EVENT_ID_LENGTH });
+      if (!/^[A-Za-z0-9._:-]+$/.test(id)) {
+        throw new HttpError(400, "id contains unsupported characters");
+      }
+      const topic = stringField(req.body.topic, "topic", { max: 256 });
+      const type = stringField(req.body.eventType, "eventType", { max: 256 });
+      const correlationId = stringField(req.body.correlationId, "correlationId", { max: 512 });
+      const facts = req.body.facts;
+      if (facts !== undefined && (typeof facts !== "object" || facts === null || Array.isArray(facts))) {
+        throw new HttpError(400, "facts must be an object");
+      }
+
+      const href = extractFactsHref(topic, facts);
+      const event = new EventModel({
+        id,
+        timeStamp: eventTimeStamp(req.body.timeStamp),
+        receivedAt: new Date(),
+        type,
+        topic,
+        facts: JSON.stringify(facts || {}, null, 2),
+        geolocation: geolocationFromHref(href),
+        payload: JSON.stringify(req.body, null, 2),
+        correlationId,
+        clientIpAddress: req.ip || req.socket.remoteAddress || "",
+      });
+
+      try {
+        await event.save();
+      } catch (error) {
+        if (error && error.code === 11000) return res.status(200).send(id);
+        throw error;
+      }
+      return res.status(200).send(id);
+    })
+  );
+
+  app.get("/system/v1.0/testconnection", leuAuth, (_req, res) => res.status(200).send());
+
+  app.get("/robots.txt", (_req, res) => {
+    res.type("text/plain").send("User-agent: *\nDisallow: /");
+  });
+
+  app.get("/", adminAuth, (_req, res) => res.redirect("/events/1"));
+  app.get("/events", adminAuth, (req, res) => {
+    const query = req.query.eventTopic ? `?eventTopic=${encodeURIComponent(req.query.eventTopic)}` : "";
+    res.redirect(`/events/1${query}`);
+  });
+
+  app.get(
+    "/events/:page",
+    adminAuth,
+    asyncRoute(async (req, res) => {
+      const page = pageNumber(req.params.page);
+      const selectedTopic = stringField(req.query.eventTopic, "eventTopic", { max: 256 });
+      const filter = selectedTopic ? { topic: selectedTopic } : {};
+      const [events, count] = await Promise.all([
+        EventModel.find(filter)
+          .sort({ timeStamp: -1 })
+          .skip(PAGE_SIZE * (page - 1))
+          .limit(PAGE_SIZE)
+          .lean()
+          .exec(),
+        EventModel.countDocuments(filter).exec(),
+      ]);
+      const pages = Math.ceil(count / PAGE_SIZE);
+      if (pages > 0 && page > pages) throw new HttpError(404, "Page not found");
+
+      res.render("events", {
+        events: events.map(formatEvent),
+        current: page,
+        selectedTopic,
+        pages,
+        csrfToken: csrfToken(req, res, config.production),
+      });
+    })
+  );
+
+  app.get(
+    "/event/:eventId",
+    adminAuth,
+    asyncRoute(async (req, res) => {
+      const eventId = stringField(req.params.eventId, "eventId", {
+        required: true,
+        max: MAX_EVENT_ID_LENGTH,
+      });
+      const event = await EventModel.findOne({ id: eventId }).lean().exec();
+      if (!event) throw new HttpError(404, "Event not found");
+      res.render("event", { ...event, displayTimeStamp: formatEvent(event).displayTimeStamp });
+    })
+  );
+
+  app.post(
+    "/eventdelete/:eventId",
+    adminAuth,
+    verifyCsrf,
+    asyncRoute(async (req, res) => {
+      const result = await EventModel.findOneAndDelete({ id: req.params.eventId }).exec();
+      if (!result) throw new HttpError(404, "Event not found");
+      res.redirect("/events/1");
+    })
+  );
+
+  app.post(
+    "/deleteallevents",
+    adminAuth,
+    verifyCsrf,
+    asyncRoute(async (_req, res) => {
+      await EventModel.deleteMany({});
+      res.redirect("/events/1");
+    })
+  );
+
+  app.get(
+    "/eventsearch",
+    adminAuth,
+    asyncRoute(async (req, res) => {
+      const keyword = stringField(req.query.keyword, "keyword", {
+        required: true,
+        max: MAX_SEARCH_LENGTH,
+      });
+      const found = await EventModel.find({
+        payload: { $regex: escapeRegex(keyword), $options: "i" },
+      })
+        .sort({ timeStamp: -1 })
+        .limit(SEARCH_RESULT_LIMIT + 1)
+        .lean()
+        .exec();
+      const truncated = found.length > SEARCH_RESULT_LIMIT;
+      const events = found.slice(0, SEARCH_RESULT_LIMIT).map(formatEvent);
+      res.render("results", {
+        events,
+        keyword,
+        truncated,
+        csrfToken: csrfToken(req, res, config.production),
+      });
+    })
+  );
+
+  app.use((req, _res, next) => next(new HttpError(404, "Not found")));
+  app.use((error, req, res, _next) => {
+    const status = error.status || (error.type === "entity.too.large" ? 413 : 500);
+    const publicMessage =
+      error.publicMessage ||
+      (status === 413
+        ? "Request body is too large"
+        : status === 400
+          ? "Invalid request body"
+          : "Internal server error");
+    if (status >= 500) {
+      console.error(`${common.getUTCDateTime()} >>> ${req.method} ${req.originalUrl}:`, error);
+    } else {
+      console.warn(
+        `${common.getUTCDateTime()} >>> ${req.method} ${req.originalUrl}: ${status} ${publicMessage}`
+      );
+    }
+    res.status(status).json({ error: publicMessage, timestamp: common.getUTCDateTime() });
+  });
+
+  return app;
+}
+
+async function start() {
+  const config = loadConfig();
+  if (config.port > 65535) throw new Error("PORT must be at most 65535");
+  await mongoose.connect(config.dbConnectString, { serverSelectionTimeoutMS: 10_000 });
+  await migrateLegacyEvents(Event);
+  await Event.createIndexes();
+  const app = createApp({ config });
+  const server = app.listen(config.port, () => {
+    console.log(`SERVER IS LISTENING AT PORT ${config.port}......`);
+  });
+
+  let cleanupRunning = false;
+  const cleanupTask = cron.schedule(
+    "0 0 1 * * *",
+    async () => {
+      if (cleanupRunning) return;
+      cleanupRunning = true;
+      try {
+        await deleteOldRecords(Event, config.recordAgeDays);
+      } catch (error) {
+        console.error(`${common.getUTCDateTime()} >>> ERROR: FAILED TO DELETE OLD RECORDS:`, error);
+      } finally {
+        cleanupRunning = false;
+      }
+    },
+    { timezone: "Asia/Shanghai" }
+  );
+
+  async function shutdown(signal) {
+    console.log(`${signal} received; shutting down.`);
+    cleanupTask.stop();
+    server.close(async () => {
+      await mongoose.disconnect();
+      process.exit(0);
     });
   }
-});
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
+}
+
+if (require.main === module) {
+  start().catch((error) => {
+    console.error(`${common.getUTCDateTime()} >>> FATAL STARTUP ERROR:`, error);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  Event,
+  HttpError,
+  basicCredentials,
+  createApp,
+  deleteOldRecords,
+  escapeRegex,
+  eventTimeStamp,
+  geolocationFromHref,
+  loadConfig,
+  migrateLegacyEvents,
+  pageNumber,
+  secureEqual,
+  start,
+};

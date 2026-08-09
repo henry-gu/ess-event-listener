@@ -4,26 +4,27 @@
   "description": "Concur ESS event notification listener.",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "test": "node --test"
   },
   "repository": {
     "type": "git",
-    "url": "henry-gu"
+    "url": "https://github.com/henry-gu/ess-event-listener.git"
   },
   "author": "Henry Gu",
-  "license": "ISC",
+  "license": "MIT",
   "engines": {
-    "node": "14.0.0",
-    "npm": "6.0.0"
+    "node": ">=20.19.0",
+    "npm": ">=10"
   },
   "dependencies": {
-    "body-parser": "^1.19.0",
-    "dotenv": "^10.0.0",
-    "ejs": "^3.1.6",
-    "express": "^4.17.1",
-    "lodash": "^4.17.21",
-    "mongoose": "^6.1.2",
-    "node-cron": "^3.0.2",
-    "request": "^2.88.2"
+    "dotenv": "^17.4.2",
+    "ejs": "^6.0.1",
+    "express": "^5.2.1",
+    "mongoose": "^9.9.1",
+    "node-cron": "^4.6.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.2.2"
   }
 }
