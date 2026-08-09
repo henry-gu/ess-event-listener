@@ -6,7 +6,7 @@
 <div class="container mt-2 bg-white">
   <div class="row g-2 align-items-center">
     <div class="col-auto">
-      <sapn class="mb-2 text-primary-emphasis">Event Topic Filter: </sapn>
+      <span class="mb-2 text-primary-emphasis">Event Topic Filter: </span>
     </div> 
     <div class="col-auto">
         <form action="/events" method="get" class="form-inline">
@@ -28,10 +28,4 @@
   </div>
 </div>
 
-<script>
-  // Add an event listener to the dropdown to trigger form submission
-  const eventTopicSelect = document.getElementById("eventTopicSelect");
-  eventTopicSelect.addEventListener("change", function () {
-      this.form.submit(); // Submit the form when the dropdown selection changes
-  });
-</script>
+<script src="/js/event-topic-filter.js" defer></script>

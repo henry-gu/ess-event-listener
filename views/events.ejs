@@ -10,22 +10,23 @@
       <% events.forEach(function(event){ %>
       <div class="row pt-1 bg-secondary bg-gradient bg-opacity-25">
         <div class="col-11 fs-6 fw-bold align-middle">
-          <button type="button" class="btn btn-secondary btn-sm"><%= event.timeStamp %> UTC</button>
+          <button type="button" class="btn btn-secondary btn-sm"><%= event.displayTimeStamp %> UTC</button>
           <button type="button" class="btn btn-primary btn-sm"><%= event.topic %></button>
           <button type="button" class="btn btn-success btn-sm"><%= event.type %></button>
-          <button type="button" class="btn btn-warning btn-sm"><%= event.id.slice(0, 60) %></button>
+          <button type="button" class="btn btn-warning btn-sm"><%= String(event.id || "").slice(0, 60) %></button>
           <button type="button" class="btn btn-danger btn-disabled btn-sm"><%= event.geolocation %></button>
         </div>
         <div class="col-1">
-          <form class="mb-1" action="/eventdelete/<%= event.id%>" method="post">
+          <form class="mb-1" action="/eventdelete/<%= encodeURIComponent(event.id) %>" method="post">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
             <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
           </form>
         </div>
       </div>
       <div class="row pt-1 pb-1 border bg-light border-light">
         <div class="col-12 align-left">
-          <% const sanitizedFacts = event.facts.replace(/\n/g, ' '); %>
-          <a href="/event/<%= event.id%>" role="button" class="btn btn-light btn-sm"><%= "facts: " + sanitizedFacts.slice(0, 160) + " ..." %></a>
+          <% const sanitizedFacts = String(event.facts || "{}").replace(/\n/g, ' '); %>
+          <a href="/event/<%= encodeURIComponent(event.id) %>" role="button" class="btn btn-light btn-sm"><%= "facts: " + sanitizedFacts.slice(0, 160) + " ..." %></a>
         </div>
       </div>
       <% }) %>
@@ -37,19 +38,19 @@
           <% if (current == 1) { %>
           <li class="page-item disabled"><a class="page-link">&laquo;</a></li>
           <% } else { %>
-          <li class="page-item"><a class="page-link" href="/events/1">&laquo;</a></li>
+          <li class="page-item"><a class="page-link" href="/events/1<%= selectedTopic ? '?eventTopic=' + encodeURIComponent(selectedTopic) : '' %>">&laquo;</a></li>
           <% } %> <% var i = (Number(current) > 5 ? Number(current) - 4 : 1) %> <% if (i !== 1) { %>
           <li class="page-item disabled"><a class="page-link">...</a></li>
           <% } %> <% for (; i <= (Number(current) + 4) && i <= pages; i++) { %> <% if (i == current) { %>
           <li class="page-item active"><a class="page-link"><%= i %></a></li>
           <% } else { %>
-          <li class="page-item"><a class="page-link" href="/events/<%= i %>"><%= i %></a></li>
+          <li class="page-item"><a class="page-link" href="/events/<%= i %><%= selectedTopic ? '?eventTopic=' + encodeURIComponent(selectedTopic) : '' %>"><%= i %></a></li>
           <% } %> <% if (i == Number(current) + 4 && i < pages) { %>
           <li class="page-item disabled"><a class="page-link">...</a></li>
           <% } %> <% } %> <% if (current == pages) { %>
           <li class="page-item disabled"><a class="page-link">&raquo;</a></li>
           <% } else { %>
-          <li class="page-item"><a class="page-link" href="/events/<%= pages %>">&raquo;</a></li>
+          <li class="page-item"><a class="page-link" href="/events/<%= pages %><%= selectedTopic ? '?eventTopic=' + encodeURIComponent(selectedTopic) : '' %>">&raquo;</a></li>
           <% } %>
         </ul>
         <% } %>
@@ -57,6 +58,7 @@
     </div>
     <div class="container mt-4">
       <form class="mb-1" action="/deleteallevents" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
         <button type="submit" class="btn btn-outline-danger btn-sm">Delete All Events</button>
       </form>
     </div>
